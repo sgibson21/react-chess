@@ -37,10 +37,11 @@ export class PieceNavigator {
             distanceAllowed++;
         }
 
-        const path = this.getPawnPath(boardState, fromSquare, direction, distanceAllowed);
-        movements.push(...path);
+        // moving forward (including 2 squares on first movement)
+        movements.push(...this.getPawnPath(boardState, fromSquare, direction, distanceAllowed));
 
-        // TODO: captures
+        // captures
+        movements.push(...this.getPawnCaptures(boardState, fromSquare, direction));
 
         // TODO: en passant
 
@@ -123,6 +124,21 @@ export class PieceNavigator {
             }
         }
         return path;
+    }
+
+    private getPawnCaptures(boardState: BoardState, from: Square, direction: 1 | -1): Square[] {
+        const captures: Square[] = [];
+        const fileDirections = [1, -1];
+        const coords = fileDirections.map(fileDir => this.getSquareFrom(from.file, fileDir, from.rank, direction)).filter(x => !!x);
+        coords.forEach(coord => {
+            if (coord) {
+                const captureSq = boardState.getSquare(coord.file, coord.rank);
+                if (captureSq.piece && captureSq.piece.color !== from.piece?.color) {
+                    captures.push(captureSq);
+                }
+            }
+        })
+        return captures;
     }
 
     private getBishopPath(boardState: BoardState, from: Square, fileDirection: 1 | -1, rankDirection: 1 | -1): Square[] {
