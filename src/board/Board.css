@@ -1,0 +1,82 @@
+.board {
+    width: 800px;
+    margin: 0 auto;
+    user-select: none;
+}
+
+.square {
+    width: 100px;
+    height: 100px;
+    display: table-cell;
+    position: relative;
+}
+
+.square.light {
+    background-color: #eeeed2;
+}
+
+.square.dark {
+    background-color: #769656;
+}
+
+.square.light.active {
+    background-color: #f6f669;
+}
+
+.square.dark.active {
+    background-color: #baca2b;
+}
+
+.available-indicator {
+    width: 30px;
+    height: 30px;
+    margin: 35px;
+    background-color: rgba(0,0,0,.1);
+    border-radius: 50%;
+}
+
+.label {
+    padding: 5px;
+    position: absolute;
+    display: inline-block;
+}
+
+.dark .label {
+    color: #eeeed2;
+}
+
+.light .label {
+    color: #769656;
+}
+
+.file-label {
+    bottom: 0;
+    right: 0;
+}
+
+.rank-label {
+    top: 0;
+    left: 0;
+}
+
+.piece {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    top: 0;
+    background-size: 100px;
+    cursor: grab;
+}
+
+.wk { background-image: url('../assets/wk.png'); }
+.bk { background-image: url('../assets/bk.png'); }
+.wq { background-image: url('../assets/wq.png'); }
+.bq { background-image: url('../assets/bq.png'); }
+.wr { background-image: url('../assets/wr.png'); }
+.br { background-image: url('../assets/br.png'); }
+.wb { background-image: url('../assets/wb.png'); }
+.bb { background-image: url('../assets/bb.png'); }
+.wn { background-image: url('../assets/wn.png'); }
+.bn { background-image: url('../assets/bn.png'); }
+.wp { background-image: url('../assets/wp.png'); }
+.bp { background-image: url('../assets/bp.png'); }
