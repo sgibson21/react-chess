@@ -22,7 +22,7 @@ export class PieceNavigator {
     }
 
     private pawnMovement(boardState: BoardState, fromSquare: Square): Square[] {
-        const movements = [];
+        const movements: Square[] = [];
 
         // gets the direction the piece moves, based on piece color
         const direction = boardState.getPlayingDirection();
@@ -40,7 +40,16 @@ export class PieceNavigator {
         const path = this.getPawnPath(boardState, fromSquare, direction, distanceAllowed);
         movements.push(...path);
 
-        // TODO: captures
+        // captures
+        [-1, 1].forEach(side => {
+            const captureSq = this.getSquareFrom(fromSquare.file, side, fromSquare.rank, direction);
+            if (captureSq) {
+                const sq = boardState.getSquare(captureSq.file, captureSq.rank);
+                if (sq.piece) {
+                    movements.push(sq);
+                }
+            }
+        });
 
         // TODO: en passant
 
@@ -72,8 +81,6 @@ export class PieceNavigator {
                 }
             }
         });
-
-        console.log('returning:', movements)
 
         return movements;
     }

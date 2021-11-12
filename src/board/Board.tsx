@@ -58,12 +58,16 @@ export class Board extends React.Component<{}, BoardComponentState> {
                   <div className="label rank-label">{rank}</div>
                 }
                 {
-                  isAvailable &&
+                  isAvailable && !square.piece &&
                   <div className="available-indicator"></div>
                 }
                 {
                   square.piece &&
                   <div className={`piece ${square.piece.imgClass}`}></div>
+                }
+                {
+                  square.piece && isAvailable &&
+                  <div className="capture-indicator"></div>
                 }
             </div>
         );

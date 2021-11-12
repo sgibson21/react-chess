@@ -33,6 +33,18 @@
     margin: 35px;
     background-color: rgba(0,0,0,.1);
     border-radius: 50%;
+    position: absolute;
+}
+
+.capture-indicator {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    position: absolute;
+    background-color: rgba(0,0,0,.1);
+    -webkit-mask: radial-gradient(transparent 40px, #000 0px);
+    mask: radial-gradient(transparent 40px, #000 0px);
+    cursor: grab;
 }
 
 .label {
