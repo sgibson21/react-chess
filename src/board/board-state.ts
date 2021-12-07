@@ -1,5 +1,5 @@
 import { Piece } from '../pieces/piece';
-import { file, pieceColor, rank, square } from './types';
+import { enPassantState, file, pieceColor, rank, square } from './types';
 import * as pieces from '../pieces/pieces';
 import { Square } from './Square';
 import { PieceNavigator } from '../pieces/piece-navigator';
@@ -21,6 +21,8 @@ export class BoardState {
     private availableSquares: Square[] = [];
 
     private playersTurn: pieceColor = 'white';
+
+    private enPassantState: enPassantState | undefined;
 
     constructor() {
         this.initSquares();
@@ -68,6 +70,14 @@ export class BoardState {
         return this.playersTurn === 'white' ? 1 : -1;
     }
 
+    public getEnPassantCaptureSq(): square | false {
+        return !!this.enPassantState && this.enPassantState.captureSquare;
+    }
+
+    public getEnPassantPieceSq(): square | false {
+        return !!this.enPassantState && this.enPassantState.pieceSquare;
+    }
+
     /**
      * Moves the piece in the active square to the given square
      */
@@ -91,24 +101,76 @@ export class BoardState {
         return this;
     }
 
+    /**
+     * @returns (boolean) if a piece was moved or not
+     */
     private movePiece(to: square): boolean {
-        let pieceMoved: boolean = false;
+        let pieceToMove: Piece | undefined;
         const fromSq = this.activeSq;
         const toSq = this.state[to.file][to.rank];
 
         // capturing a piece
-        if (fromSq && fromSq.piece && toSq.piece && fromSq.piece.color !== toSq.piece.color) {
+        if (fromSq && fromSq.piece && toSq && toSq.piece && !this.compareSquarePieceColor(fromSq, toSq)) {
             this.capturePiece(toSq);
-            this.setPieceOn(fromSq.liftPiece(), toSq);
-            pieceMoved = true;
+            pieceToMove = fromSq.liftPiece();
+            this.setPieceOn(pieceToMove, toSq);
+        }
+        // capturing by en passant
+        else if (
+            fromSq && toSq && this.enPassantState?.captureSquare &&
+            this.compareSquareCoords(toSq, this.enPassantState.captureSquare) &&
+            !this.compareSquarePieceColor(fromSq, this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank))
+        ) {
+            this.capturePieceByEnPassant();
+            pieceToMove = fromSq.liftPiece();
+            this.setPieceOn(pieceToMove, toSq);
         }
         // moving to an empty square
         else if (fromSq && fromSq.piece && !toSq.piece) {
-            this.setPieceOn(fromSq.liftPiece(), toSq);
-            pieceMoved = true;
+            pieceToMove = fromSq.liftPiece();
+            this.setPieceOn(pieceToMove, toSq);
         }
 
-        return pieceMoved;
+        // clear en passant state
+        if (fromSq && pieceToMove) {
+            this.enPassantState = this.getEnPassantState(fromSq, toSq, pieceToMove);
+        }
+
+        return !!pieceToMove;
+    }
+
+    /**
+     * gets any en passant state if a pawn has been moved 2 squares
+     */
+    private getEnPassantState(fromSq: square, toSq: square, pieceToMove: Piece): enPassantState | undefined {
+        // if the piece is a pawn and has moved 2 squares
+        if (pieceToMove.type === 'pawn' && Math.abs(fromSq.rank - toSq.rank) === 2) {
+            // get square to be marked
+            return {
+                captureSquare: { // capture square is where the pawn can be captured
+                    file: fromSq.file,
+                    rank: (fromSq.rank + toSq.rank) / 2 as rank // average of the 'from' and 'to' ranks will be the middle rank
+                },
+                pieceSquare: { // piece square is where the piece was moved to
+                    file: toSq.file,
+                    rank: toSq.rank
+                }
+            };
+        }
+    }
+
+    /**
+     * true if same color, false if not, false if either square has no piece
+     */
+    private compareSquarePieceColor(sq1: Square, sq2: Square): boolean {
+        return !!sq1.piece && !!sq2.piece && sq1.piece.color === sq2.piece.color;
+    }
+
+    /**
+     * true if coords are the same, false if not or if either param is falsey
+     */
+    private compareSquareCoords(sq1: square, sq2: square): boolean {
+        return !!sq1 && !!sq2 && sq1.file === sq2.file && sq1.rank === sq2.rank;
     }
 
     /**
@@ -131,6 +193,20 @@ export class BoardState {
         // add captured piece to current players stash
         // TODO
 
+    }
+
+    /**
+     * Captures piece as defined by the en passant state
+     */
+    private capturePieceByEnPassant(): void {
+        if (this.enPassantState?.pieceSquare) {
+
+            // lift piece to be taken
+            const capturedPice = this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank).liftPiece();
+
+            // add captured piece to current players stash
+            // TODO
+        }
     }
 
     private clearAvailableSquares(): void {

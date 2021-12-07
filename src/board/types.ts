@@ -14,3 +14,15 @@ export type square = {
     file: file;
     rank: rank;
 };
+
+export type enPassantState = {
+    /**
+     * square that the pawn to be captured moved to
+     */
+    pieceSquare: square;
+
+    /**
+     * square that the pawn to be captured skipped, on it's first move
+     */
+    captureSquare: square;
+};

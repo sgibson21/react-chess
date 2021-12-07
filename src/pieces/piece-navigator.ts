@@ -43,7 +43,8 @@ export class PieceNavigator {
         // captures
         movements.push(...this.getPawnCaptures(boardState, fromSquare, direction));
 
-        // TODO: en passant
+        // en passant
+        movements.push(...this.getEnPassant(boardState, fromSquare));
 
         // TODO: queening
         
@@ -137,6 +138,27 @@ export class PieceNavigator {
             }
         })
         return captures;
+    }
+
+    private getEnPassant(boardState: BoardState, fromSquare: Square): Square[] {
+        const movements: Square[] = [];
+
+        const enPassantCaptureSq = boardState.getEnPassantCaptureSq();
+        const enPassantPieceSq = boardState.getEnPassantPieceSq();
+
+        // if the capturing piece is on the same rank as the en passant piece square
+        if (enPassantCaptureSq && enPassantPieceSq && fromSquare.rank === enPassantPieceSq.rank) {
+
+            const fileLeft = this.getFileFrom(fromSquare.file, -1);
+            const fileRight = this.getFileFrom(fromSquare.file, 1);
+
+            // AND the capturing piece is either on the file to the left OR right of the en passant capture square
+            if (enPassantPieceSq.file === fileLeft || enPassantPieceSq.file === fileRight) {
+                movements.push(boardState.getSquare(enPassantCaptureSq.file, enPassantCaptureSq.rank));
+            }
+        }
+
+        return movements;
     }
 
     private getBishopPath(boardState: BoardState, from: Square, fileDirection: 1 | -1, rankDirection: 1 | -1): Square[] {
