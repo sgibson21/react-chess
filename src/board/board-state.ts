@@ -58,10 +58,6 @@ export class BoardState {
         return !!this.availableSquares.find(sq => sq.file === file && sq.rank === rank);
     }
 
-    public isPlayersTurn(file: file, rank: rank): boolean {
-        return this.state[file][rank].piece?.color === this.playersTurn;
-    }
-
     public isOwnPiece(file: file, rank: rank): boolean {
         return this.getSquare(file, rank).piece?.color === this.playersTurn;
     }

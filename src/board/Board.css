@@ -11,19 +11,32 @@
     position: relative;
 }
 
-.square.light {
+.square::after {
+    display: block;
+    content: '';
+    width: 90px;
+    height: 90px;
+    margin: 5px;
+}
+
+.square.light, .square.light::after {
     background-color: #eeeed2;
 }
 
-.square.dark {
+.square.dark, .square.dark::after {
     background-color: #769656;
 }
 
-.square.light.active {
+/* The square itself is used as the boarder to prevent the pieces from being pushed about using actial boarders */
+.square.is-over, .square.is-over {
+    background-color:  #d9d9d9;
+}
+
+.square.light.active, .square.light.active::after {
     background-color: #f6f669;
 }
 
-.square.dark.active {
+.square.dark.active, .square.dark.active::after {
     background-color: #baca2b;
 }
 
@@ -78,6 +91,10 @@
     top: 0;
     background-size: 100px;
     cursor: grab;
+}
+
+.piece:active {
+    cursor: grabbing;
 }
 
 .wk { background-image: url('../assets/wk.png'); }

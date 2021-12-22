@@ -1,8 +1,10 @@
 import React from 'react';
 import { BoardState, files } from './board-state';
 import './Board.css';
-import { Square } from './Square';
-import { file, rank } from './types';
+import { rank } from './types';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { SquareEl } from './SquareEl';
 
 const board = [
     files,
@@ -33,42 +35,9 @@ export class Board extends React.Component<{}, BoardComponentState> {
     render() {
         return (
             <div className="board">
-                {board.map((r, i) => this.rankEl(8 - i as rank))}
-            </div>
-        );
-    }
-
-    private squareEl(file: file, rank: rank) {
-        const square: Square = this.state.board.getSquare(file, rank);
-        const sqColor = square.getColor();
-        const isActive = this.state.board.isActiveSq(file, rank);
-        const isAvailable = this.state.board.isAvailableSquare(file, rank);
-        return (
-            <div
-                key={file}
-                className={`square ${sqColor} ${isActive && 'active'}`}
-                onClick={() => this.squareClicked(file, rank)}
-            >
-                {
-                  rank === 1 &&
-                  <div className="label file-label">{file}</div>
-                }
-                {
-                  file === 'a' &&
-                  <div className="label rank-label">{rank}</div>
-                }
-                {
-                  isAvailable && !square.piece &&
-                  <div className="available-indicator"></div>
-                }
-                {
-                  square.piece &&
-                  <div className={`piece ${square.piece.imgClass}`}></div>
-                }
-                {
-                  square.piece && isAvailable &&
-                  <div className="capture-indicator"></div>
-                }
+                <DndProvider backend={HTML5Backend}>
+                    {board.map((r, i) => this.rankEl(8 - i as rank))}
+                </DndProvider>
             </div>
         );
     }
@@ -76,30 +45,17 @@ export class Board extends React.Component<{}, BoardComponentState> {
     private rankEl(rank: rank) {
         return (
             <div key={rank} className="rank">
-                {files.map(file => this.squareEl(file, rank))}
+                {files.map(file => (
+                    <SquareEl 
+                        key={file}
+                        board={this.state.board}
+                        file={file}
+                        rank={rank}
+                        setBoard={(board: BoardState) => this.setState({ board })}
+                    />
+                ))}
             </div>
         );
-    }
-    
-    private squareClicked(file: file, rank: rank) {
-        // set active piece if they've clicked their own piece and it's their turn
-        if (this.state.board.isOwnPiece(file, rank) && !this.state.board.isActiveSq(file, rank) && this.state.board.isPlayersTurn(file, rank)) {
-            this.setState({
-                board: this.state.board.setActiveSquare(file, rank)
-            });
-        }
-        // clear the active square if it's active and they've clicked it again
-        else if (this.state.board.hasActiveSq() && this.state.board.isActiveSq(file, rank)) {
-            this.setState({
-                board: this.state.board.clearActiveSq()
-            });
-        }
-        // move the piece if there's an active piece and they havn't clicked their own piece
-        else if (this.state.board.hasActiveSq() && !this.state.board.isOwnPiece(file, rank)) {
-            this.setState({
-                board: this.state.board.movePieceTo({file, rank})
-            });
-        }
     }
 
 }

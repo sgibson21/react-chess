@@ -8,6 +8,8 @@ export type squareColor = 'light' | 'dark';
 
 export type pieceType = 'king' | 'queen' | 'rook' | 'bishop' | 'knight' | 'pawn';
 
+export type pieceImgKey = 'bb' | 'bk' | 'bn' | 'bp' | 'bq' | 'br' | 'wb' | 'wk' | 'wn' | 'wp' | 'wq' | 'wr';
+
 export type piecePoints = 9 | 5 | 3 | 1;
 
 export type square = {
