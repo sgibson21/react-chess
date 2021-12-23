@@ -1,6 +1,7 @@
-import { BoardState, files, ranks } from '../board/board-state';
+import { BoardState } from '../board/board-state';
 import { Square } from '../board/Square';
 import { pieceType, file, rank, square } from '../board/types';
+import { getFileFrom, getRankFrom } from '../board/utils';
 
 export class PieceNavigator {
     
@@ -104,7 +105,59 @@ export class PieceNavigator {
     }
 
     private kingMovement(boardState: BoardState, square: Square): Square[] {
-        return [];
+        const movements: Square[] = [];
+        const coords = [
+            { file: -1, rank: 1},
+            { file: 0, rank: 1},
+            { file: 1, rank: 1},
+            { file: -1, rank: 0},
+            { file: 1, rank: 0},
+            { file: -1, rank: -1},
+            { file: 0, rank: -1},
+            { file: 1, rank: -1}
+        ];
+        
+        coords.forEach(coord => {
+            const sq = this.getSquareFrom(square.file, coord.file, square.rank, coord.rank);
+            if (sq) {
+                const squareTo = boardState.getSquare(sq.file, sq.rank);
+                if (!squareTo.piece || squareTo.piece.color !== square.piece?.color) {
+                    // TODO: cannot put itself into check
+                    movements.push(squareTo);
+                }
+            }
+        });
+
+        // castling - king hasnt moved, path to rook is clear and not in line of sight of attacking piece, rook hasnt moved
+        if (square.piece && !square.piece.hasMoved) {
+            // short castling is always towards the h file, long towards the a file
+            const pathToRookShort = this.getRookPath(boardState, square, 1, false);
+            const pathToRookLong = this.getRookPath(boardState, square, -1, false);
+
+            const rookAtShortCoord = this.getSquareFrom(square.file, 3, square.rank, 0);
+            const rookAtLongCoord = this.getSquareFrom(square.file, -4, square.rank, 0);
+            
+            if (rookAtShortCoord) {
+                const rookAtShortSq = boardState.getSquare(rookAtShortCoord.file, rookAtShortCoord.rank);
+
+                if (pathToRookShort.length === 2 && rookAtShortSq.piece && !rookAtShortSq.piece?.hasMoved) {
+                    // TODO: path to rook is not in line of sight of attacking piece
+                    movements.push(pathToRookShort[1]);
+                }
+            }
+
+            if (rookAtLongCoord) {
+                const rookAtLongSq = boardState.getSquare(rookAtLongCoord.file, rookAtLongCoord.rank);
+
+                if (pathToRookLong.length === 3 && rookAtLongSq.piece && !rookAtLongSq.piece.hasMoved) {
+                    // TODO: path to rook is not in line of sight of attacking piece
+                    movements.push(pathToRookLong[1]);
+                }
+            }
+
+        }
+
+        return movements;
     }
 
     /**
@@ -149,8 +202,8 @@ export class PieceNavigator {
         // if the capturing piece is on the same rank as the en passant piece square
         if (enPassantCaptureSq && enPassantPieceSq && fromSquare.rank === enPassantPieceSq.rank) {
 
-            const fileLeft = this.getFileFrom(fromSquare.file, -1);
-            const fileRight = this.getFileFrom(fromSquare.file, 1);
+            const fileLeft = getFileFrom(fromSquare.file, -1);
+            const fileRight = getFileFrom(fromSquare.file, 1);
 
             // AND the capturing piece is either on the file to the left OR right of the en passant capture square
             if (enPassantPieceSq.file === fileLeft || enPassantPieceSq.file === fileRight) {
@@ -233,33 +286,11 @@ export class PieceNavigator {
      * Gets the square { file, rank } of the square [fileCount] and [rankCount] away from the given square
      */
     private getSquareFrom(fromFile: file, fileCount: number, fromRank: rank, rankCount: number): square | undefined {
-        const file = this.getFileFrom(fromFile, fileCount);
-        const rank = this.getRankFrom(fromRank, rankCount);
+        const file = getFileFrom(fromFile, fileCount);
+        const rank = getRankFrom(fromRank, rankCount);
         if (file && rank) {
             return { file, rank };
         }
-    }
-
-    /**
-     * Gets the file that is [count] many files from the file provided
-     * @param file 
-     * @param count 
-     * @returns 
-     */
-    private getFileFrom(file: file, count: number): file {
-        const fileIndex = files.indexOf(file);
-        return files[fileIndex + count];
-    }
-
-    /**
-     * Gets the rank that is [count] many ranks from the rank provided
-     * @param rank 
-     * @param count 
-     * @returns 
-     */
-    private getRankFrom(rank: rank, count: number): rank {
-        const rankIndex = ranks.indexOf(rank);
-        return ranks[rankIndex + count];
     }
 
 }

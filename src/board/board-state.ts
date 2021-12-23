@@ -3,6 +3,7 @@ import { enPassantState, file, pieceColor, rank, square } from './types';
 import * as pieces from '../pieces/pieces';
 import { Square } from './Square';
 import { PieceNavigator } from '../pieces/piece-navigator';
+import { distanceBetweenFiles } from './utils';
 
 export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -85,8 +86,11 @@ export class BoardState {
             // move piece to new square
             const pieceMoved = this.movePiece(to);
 
-            // only switch player if a piece was moved
             if (pieceMoved) {
+                if (this.activeSq.piece) {
+                    this.activeSq.piece.hasMoved = true;
+                }
+                // only switch player if a piece was moved
                 this.switchPlayer();
             }
 
@@ -123,11 +127,34 @@ export class BoardState {
         }
         // moving to an empty square
         else if (fromSq && fromSq.piece && !toSq.piece) {
+
+            // castling - if moving a king more than 1 space
+            if (fromSq.piece.type === 'king' && distanceBetweenFiles(fromSq.file, toSq.file) > 1) {
+
+                // move rook to other side of king
+                if (fromSq.file < toSq.file) {
+                    // short castling
+                    const rookSq = this.getSquare('h', fromSq.rank);
+                    if (rookSq.piece) {
+                        const rook = rookSq.liftPiece();
+                        this.setPieceOn(rook, this.getSquare('f', fromSq.rank));
+                    }
+                } else {
+                    // long castling
+                    const rookSq = this.getSquare('a', fromSq.rank);
+                    if (rookSq.piece) {
+                        const rook = rookSq.liftPiece();
+                        this.setPieceOn(rook, this.getSquare('d', fromSq.rank));
+                    }
+                }
+            }
+
+            // move piece (including castling king)
             pieceToMove = fromSq.liftPiece();
             this.setPieceOn(pieceToMove, toSq);
         }
 
-        // clear en passant state
+        // clear and set new en passant state
         if (fromSq && pieceToMove) {
             this.enPassantState = this.getEnPassantState(fromSq, toSq, pieceToMove);
         }
