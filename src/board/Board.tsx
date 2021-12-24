@@ -5,6 +5,7 @@ import { rank } from './types';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { SquareEl } from './SquareEl';
+import { CustomDragLayer } from './CustomDragLayer';
 
 const board = [
     files,
@@ -36,6 +37,7 @@ export class Board extends React.Component<{}, BoardComponentState> {
         return (
             <div className="board">
                 <DndProvider backend={HTML5Backend}>
+                    <CustomDragLayer board={this.state.board}/>
                     {board.map((r, i) => this.rankEl(8 - i as rank))}
                 </DndProvider>
             </div>
