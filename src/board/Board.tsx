@@ -35,12 +35,12 @@ export class Board extends React.Component<{}, BoardComponentState> {
 
     render() {
         return (
-            <div className="board">
-                <DndProvider backend={HTML5Backend}>
-                    <CustomDragLayer board={this.state.board}/>
+            <DndProvider backend={HTML5Backend}>
+                <CustomDragLayer board={this.state.board}/>
+                <div className="board">
                     {board.map((r, i) => this.rankEl(8 - i as rank))}
-                </DndProvider>
-            </div>
+                </div>
+            </DndProvider>
         );
     }
 

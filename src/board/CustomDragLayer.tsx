@@ -22,7 +22,7 @@ function getItemStyles(currentOffset: XYCoord | null) {
     }
   
     const { x, y } = currentOffset;
-  
+
     const transform = `translate(${x - 100}px, ${y - 100}px)`
     return {
       transform,
