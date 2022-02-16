@@ -1,5 +1,5 @@
 import { files, ranks } from './board-state';
-import { file, rank } from './types';
+import { coord, file, rank } from './types';
 
 /**
  * Gets the distance between two files
@@ -29,4 +29,15 @@ export const getFileFrom = (file: file, count: number): file => {
 export const getRankFrom = (rank: rank, count: number): rank => {
     const rankIndex = ranks.indexOf(rank);
     return ranks[rankIndex + count];
+}
+
+/**
+ * Gets the coordinate { file, rank } of the square [fileCount] and [rankCount] away from the given square
+ */
+export const getSquareFrom = (fromFile: file, fileCount: number, fromRank: rank, rankCount: number): coord | undefined => {
+   const file = getFileFrom(fromFile, fileCount);
+   const rank = getRankFrom(fromRank, rankCount);
+   if (file && rank) {
+       return { file, rank };
+   }
 }

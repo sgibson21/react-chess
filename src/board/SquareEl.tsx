@@ -2,7 +2,7 @@ import { useDrop } from 'react-dnd';
 import { DraggablePiece } from './DraggablePiece';
 import { BoardState } from './board-state';
 import { file, rank } from './types';
-import { Square } from './Square';
+import { Square } from './square';
 
 interface SquareProps {
     board: BoardState;

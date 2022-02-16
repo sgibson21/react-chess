@@ -1,9 +1,9 @@
-import { BoardState } from '../board/board-state';
-import { Square } from '../board/Square';
-import { pieceType, file, rank, square } from '../board/types';
-import { getFileFrom, getRankFrom } from '../board/utils';
+import { BoardState } from './board-state';
+import { Square } from './square';
+import { pieceType, file, rank, coord, direction } from './types';
+import { getFileFrom, getRankFrom, getSquareFrom } from './utils';
 
-export class PieceNavigator {
+export class BoardNavigator {
     
     private navigatorMap: Record<pieceType, (boardState: BoardState, fromSquare: Square) => Square[]> = {
         pawn: (boardState: BoardState, fromSquare: Square) => this.pawnMovement(boardState, fromSquare),
@@ -15,6 +15,11 @@ export class PieceNavigator {
     };
 
     public getPieceMovement(boardState: BoardState, square: Square): Square[] {
+        // TODO: If you are in check, you can only move a piece if it can get you out of check
+        if (boardState.isInCheck()) {
+            console.log('in check');
+        }
+
         const piece = square.piece;
         if (piece) {
             return this.navigatorMap[piece.type](boardState, square);
@@ -67,7 +72,7 @@ export class PieceNavigator {
         ];
 
         coords.forEach(coord => {
-            const sq = this.getSquareFrom(squareFrom.file, coord.file, squareFrom.rank, coord.rank);
+            const sq = getSquareFrom(squareFrom.file, coord.file, squareFrom.rank, coord.rank);
             if (sq) {
                 const squareTo = boardState.getSquare(sq.file, sq.rank);
                 if (!squareTo.piece || squareTo.piece.color !== squareFrom.piece?.color) {
@@ -106,7 +111,7 @@ export class PieceNavigator {
 
     private kingMovement(boardState: BoardState, square: Square): Square[] {
         const movements: Square[] = [];
-        const coords = [
+        const coords: direction[] = [
             { file: -1, rank: 1},
             { file: 0, rank: 1},
             { file: 1, rank: 1},
@@ -118,7 +123,7 @@ export class PieceNavigator {
         ];
         
         coords.forEach(coord => {
-            const sq = this.getSquareFrom(square.file, coord.file, square.rank, coord.rank);
+            const sq = getSquareFrom(square.file, coord.file, square.rank, coord.rank);
             if (sq) {
                 const squareTo = boardState.getSquare(sq.file, sq.rank);
                 if (!squareTo.piece || squareTo.piece.color !== square.piece?.color) {
@@ -134,8 +139,8 @@ export class PieceNavigator {
             const pathToRookShort = this.getRookPath(boardState, square, 1, false);
             const pathToRookLong = this.getRookPath(boardState, square, -1, false);
 
-            const rookAtShortCoord = this.getSquareFrom(square.file, 3, square.rank, 0);
-            const rookAtLongCoord = this.getSquareFrom(square.file, -4, square.rank, 0);
+            const rookAtShortCoord = getSquareFrom(square.file, 3, square.rank, 0);
+            const rookAtLongCoord = getSquareFrom(square.file, -4, square.rank, 0);
             
             if (rookAtShortCoord) {
                 const rookAtShortSq = boardState.getSquare(rookAtShortCoord.file, rookAtShortCoord.rank);
@@ -181,7 +186,7 @@ export class PieceNavigator {
     private getPawnCaptures(boardState: BoardState, from: Square, direction: 1 | -1): Square[] {
         const captures: Square[] = [];
         const fileDirections = [1, -1];
-        const coords = fileDirections.map(fileDir => this.getSquareFrom(from.file, fileDir, from.rank, direction)).filter(x => !!x);
+        const coords = fileDirections.map(fileDir => getSquareFrom(from.file, fileDir, from.rank, direction)).filter(x => !!x);
         coords.forEach(coord => {
             if (coord) {
                 const captureSq = boardState.getSquare(coord.file, coord.rank);
@@ -217,7 +222,7 @@ export class PieceNavigator {
     private getBishopPath(boardState: BoardState, from: Square, fileDirection: 1 | -1, rankDirection: 1 | -1): Square[] {
         const path: Square[] = [];
 
-        // describes if...
+        // describes if no pieces are blocking the path up to this point
         let openPath: boolean;
         let count = 0;
 
@@ -225,7 +230,7 @@ export class PieceNavigator {
             openPath = false;
             count++;
 
-            const coords = this.getSquareFrom(from.file, fileDirection * count, from.rank, rankDirection * count);
+            const coords = getSquareFrom(from.file, fileDirection * count, from.rank, rankDirection * count);
             if (coords) {
                 const sq = boardState.getSquare(coords.file, coords.rank);
 
@@ -261,8 +266,8 @@ export class PieceNavigator {
             openPath = false;
             count++;
 
-            const coords = isRankPath ? this.getSquareFrom(from.file, 0, from.rank, direction * count) :
-                this.getSquareFrom(from.file, direction * count, from.rank, 0);
+            const coords = isRankPath ? getSquareFrom(from.file, 0, from.rank, direction * count) :
+                getSquareFrom(from.file, direction * count, from.rank, 0);
             if (coords) {
                 const sq = boardState.getSquare(coords.file, coords.rank);
 
@@ -280,17 +285,6 @@ export class PieceNavigator {
         } while (openPath)
 
         return path;
-    }
-
-    /**
-     * Gets the square { file, rank } of the square [fileCount] and [rankCount] away from the given square
-     */
-    private getSquareFrom(fromFile: file, fileCount: number, fromRank: rank, rankCount: number): square | undefined {
-        const file = getFileFrom(fromFile, fileCount);
-        const rank = getRankFrom(fromRank, rankCount);
-        if (file && rank) {
-            return { file, rank };
-        }
     }
 
 }

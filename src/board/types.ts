@@ -12,19 +12,45 @@ export type pieceImgKey = 'bb' | 'bk' | 'bn' | 'bp' | 'bq' | 'br' | 'wb' | 'wk' 
 
 export type piecePoints = 9 | 5 | 3 | 1;
 
-export type square = {
+/**
+ * coordinates of file and rank eg: a1
+ */
+export type coord = {
     file: file;
     rank: rank;
 };
+
+/**
+ * represents a direction, in a straight line, relative to a given coordinate
+ * 
+ * eg: { file: -1, rank: 1 } would describe a North Westerly direction
+ */
+export type direction = {
+    file: -1 | 0 | 1;
+    rank: -1 | 0 | 1;
+};
+
+/**
+ * represents a direction in which a knight can attack a given coordinate from
+ */
+export type knightDirection =
+    { file: 1, rank: 2}   |
+    { file: 2, rank: 1}   |
+    { file: 2, rank: -1}  |
+    { file: 1, rank: -2}  |
+    { file: -1, rank: -2} |
+    { file: -2, rank: -1} |
+    { file: -2, rank: 1}  |
+    { file: -1, rank: 2};
 
 export type enPassantState = {
     /**
      * square that the pawn to be captured moved to
      */
-    pieceSquare: square;
+    pieceSquare: coord;
 
     /**
      * square that the pawn to be captured skipped, on it's first move
      */
-    captureSquare: square;
+    captureSquare: coord;
 };

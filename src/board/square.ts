@@ -1,5 +1,5 @@
 import { Piece } from "../pieces/piece";
-import { file, rank, squareColor } from "./types";
+import { coord, file, rank, squareColor } from "./types";
 
 export class Square {
 
@@ -32,6 +32,10 @@ export class Square {
             this.piece = null;
             return piece;
         }
+    }
+
+    public getCoordinates(): coord {
+        return { file: this.file, rank: this.rank };
     }
     
 }

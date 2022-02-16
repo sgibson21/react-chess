@@ -1,9 +1,10 @@
 import { Piece } from '../pieces/piece';
-import { enPassantState, file, pieceColor, rank, square } from './types';
+import { enPassantState, file, pieceColor, pieceType, rank, coord } from './types';
 import * as pieces from '../pieces/pieces';
-import { Square } from './Square';
-import { PieceNavigator } from '../pieces/piece-navigator';
+import { Square } from './square';
+import { BoardNavigator } from './board-navigator';
 import { distanceBetweenFiles } from './utils';
+import { BoardScout } from './board-scout';
 
 export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -15,7 +16,9 @@ export class BoardState {
         }
     } = {};
 
-    private navigator: PieceNavigator;
+    private navigator: BoardNavigator;
+
+    private scout: BoardScout;
 
     private activeSq: Square | null;
 
@@ -28,7 +31,8 @@ export class BoardState {
     constructor() {
         this.initSquares();
         this.initPieces();
-        this.navigator = new PieceNavigator();
+        this.navigator = new BoardNavigator();
+        this.scout = new BoardScout();
     }
 
     public getSquare(file: file, rank: rank): Square {
@@ -63,22 +67,31 @@ export class BoardState {
         return this.getSquare(file, rank).piece?.color === this.playersTurn;
     }
 
+    public isInCheck(): boolean {
+        const kingSq = this.getSquareWithPiece('king', this.playersTurn);
+        return !!kingSq && this.scout.isAttacked(this, kingSq.getCoordinates());
+    }
+
+    public getPlayingColor(): pieceColor {
+        return this.playersTurn;
+    }
+
     public getPlayingDirection(): 1 | -1 {
         return this.playersTurn === 'white' ? 1 : -1;
     }
 
-    public getEnPassantCaptureSq(): square | false {
+    public getEnPassantCaptureSq(): coord | false {
         return !!this.enPassantState && this.enPassantState.captureSquare;
     }
 
-    public getEnPassantPieceSq(): square | false {
+    public getEnPassantPieceSq(): coord | false {
         return !!this.enPassantState && this.enPassantState.pieceSquare;
     }
 
     /**
      * Moves the piece in the active square to the given square
      */
-    public movePieceTo(to: square): BoardState {
+    public movePieceTo(to: coord): BoardState {
         if (this.activeSq && !this.isActiveSq(to.file, to.rank) && this.isAvailableSquare(to.file, to.rank)) {
 
             // TODO: check if piece can move
@@ -101,10 +114,23 @@ export class BoardState {
         return this;
     }
 
+    private getSquareWithPiece(type: pieceType, color: pieceColor): Square | undefined {
+        let square: Square | undefined;
+        for (const file of files) {
+            for (const rank of ranks) {
+                const sq = this.state[file][rank];
+                if (sq.piece && sq.piece.type === type && sq.piece.color === color) {
+                    square = sq;
+                }
+            }
+        }
+        return square;
+    }
+
     /**
      * @returns (boolean) if a piece was moved or not
      */
-    private movePiece(to: square): boolean {
+    private movePiece(to: coord): boolean {
         let pieceToMove: Piece | undefined;
         const fromSq = this.activeSq;
         const toSq = this.state[to.file][to.rank];
@@ -165,7 +191,7 @@ export class BoardState {
     /**
      * gets any en passant state if a pawn has been moved 2 squares
      */
-    private getEnPassantState(fromSq: square, toSq: square, pieceToMove: Piece): enPassantState | undefined {
+    private getEnPassantState(fromSq: coord, toSq: coord, pieceToMove: Piece): enPassantState | undefined {
         // if the piece is a pawn and has moved 2 squares
         if (pieceToMove.type === 'pawn' && Math.abs(fromSq.rank - toSq.rank) === 2) {
             // get square to be marked
@@ -192,7 +218,7 @@ export class BoardState {
     /**
      * true if coords are the same, false if not or if either param is falsey
      */
-    private compareSquareCoords(sq1: square, sq2: square): boolean {
+    private compareSquareCoords(sq1: coord, sq2: coord): boolean {
         return !!sq1 && !!sq2 && sq1.file === sq2.file && sq1.rank === sq2.rank;
     }
 
