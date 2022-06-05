@@ -15,15 +15,16 @@ export class BoardNavigator {
     };
 
     public getPieceMovement(boardState: BoardState, square: Square): Square[] {
-        // TODO: If you are in check, you can only move a piece if it can get you out of check
-        if (boardState.isInCheck()) {
-            console.log('in check');
+        const piece = square.piece;
+
+        if (piece) {
+            return this.navigatorMap[piece.type](boardState, square)
+                .filter(toSq => {
+                    const move = {from: square.getCoordinates(), to: toSq.getCoordinates()};
+                    return !boardState.simulateMove(move, sim => sim.isInCheck());
+                });
         }
 
-        const piece = square.piece;
-        if (piece) {
-            return this.navigatorMap[piece.type](boardState, square);
-        }
         return [];
     }
 
@@ -127,7 +128,6 @@ export class BoardNavigator {
             if (sq) {
                 const squareTo = boardState.getSquare(sq.file, sq.rank);
                 if (!squareTo.piece || squareTo.piece.color !== square.piece?.color) {
-                    // TODO: cannot put itself into check
                     movements.push(squareTo);
                 }
             }
@@ -146,8 +146,16 @@ export class BoardNavigator {
                 const rookAtShortSq = boardState.getSquare(rookAtShortCoord.file, rookAtShortCoord.rank);
 
                 if (pathToRookShort.length === 2 && rookAtShortSq.piece && !rookAtShortSq.piece?.hasMoved) {
-                    // TODO: path to rook is not in line of sight of attacking piece
-                    movements.push(pathToRookShort[1]);
+
+                    // path to king's final position should not be in the line of sight of an attacking piece
+                    const pathInCheck: boolean = boardState.simulateMove({
+                        from: {file: square.file, rank: square.rank},
+                        to: {file: pathToRookShort[0].file, rank: pathToRookShort[0].rank}
+                    }, sim => sim.isInCheck());
+
+                    if (!pathInCheck) {
+                        movements.push(pathToRookShort[1]);
+                    }
                 }
             }
 
@@ -155,8 +163,16 @@ export class BoardNavigator {
                 const rookAtLongSq = boardState.getSquare(rookAtLongCoord.file, rookAtLongCoord.rank);
 
                 if (pathToRookLong.length === 3 && rookAtLongSq.piece && !rookAtLongSq.piece.hasMoved) {
-                    // TODO: path to rook is not in line of sight of attacking piece
-                    movements.push(pathToRookLong[1]);
+
+                    // path to king's final position should not be in the line of sight of an attacking piece
+                    const pathInCheck: boolean = boardState.simulateMove({
+                        from: {file: square.file, rank: square.rank},
+                        to: {file: pathToRookShort[0].file, rank: pathToRookShort[0].rank}
+                    }, sim => sim.isInCheck());
+
+                    if (!pathInCheck) {
+                        movements.push(pathToRookLong[1]);
+                    }
                 }
             }
 

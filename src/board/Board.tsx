@@ -24,6 +24,14 @@ type BoardComponentState = {
 
 export class Board extends React.Component<{}, BoardComponentState> {
 
+    private historyListener = (e: KeyboardEvent) => {
+        if (e.key === 'ArrowRight') {
+            this.setState({ board: this.state.board.forward() });
+        } else if (e.key === 'ArrowLeft') {
+            this.setState({ board: this.state.board.back() });
+        }
+    };
+
     constructor(props: any) {
         super(props);
 
@@ -31,6 +39,14 @@ export class Board extends React.Component<{}, BoardComponentState> {
             board: new BoardState()
         };
 
+    }
+
+    componentDidMount() {
+        document.addEventListener('keydown', this.historyListener);
+    }
+  
+    componentWillUnmount() {
+        document.removeEventListener('keydown', this.historyListener);
     }
 
     render() {

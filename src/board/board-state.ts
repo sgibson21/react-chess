@@ -9,12 +9,31 @@ import { BoardScout } from './board-scout';
 export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
 
+type capture = {
+    piece: Piece;
+    coord: coord
+};
+
+type move = {
+    from: coord;
+    to: coord;
+    capture?: capture;
+    /**
+     * optional callback used to reverse piece state: ie set hasMoved back to false
+     */
+    reverse?: () => void;
+};
+
 export class BoardState {
     public state: {
         [file: string]: {
             [rank: number]: Square
         }
     } = {};
+
+    private undoHistory: move[][] = [];
+
+    private redoHistory: move[][] = [];
 
     private navigator: BoardNavigator;
 
@@ -88,21 +107,59 @@ export class BoardState {
         return !!this.enPassantState && this.enPassantState.pieceSquare;
     }
 
+    public back(): BoardState {
+        if (this.undoHistory.length > 0) {
+            const movesToUndo = this.undoHistory.splice(-1, 1)[0];
+            this.makeHistoryMovesBackwards(movesToUndo);
+            this.redoHistory.push(movesToUndo);
+            this.switchPlayer();
+        }
+        return this;
+    }
+
+    public forward(): BoardState {
+        if (this.redoHistory.length > 0) {
+            const movesToRedo = this.redoHistory.splice(-1, 1)[0];
+            this.makeHistoryMovesForwards(movesToRedo);
+            this.undoHistory.push(movesToRedo);
+            this.switchPlayer();
+        }
+        return this;
+    }
+
+    /**
+     * Allows you to simulate a piece moving, providing the board state to the callback to run calculations,
+     * then undos the move after the callback finishes
+     * @param move - the move to simulate
+     * @param callback - the callabck function in which to run calculations on the simulated board state
+     * @returns - the return value of the callback
+     */
+    public simulateMove<T>({from, to}: {from: coord, to: coord}, callback: (state: BoardState) => T): T {
+        // make move
+        const capture = this.makeUnvalidatedMove(from, to);
+
+        const returnValue = callback(this);
+
+        // undo move
+        this.makeHistoryMoveBackwards({from, to, capture});
+
+        return returnValue;
+    }
+
     /**
      * Moves the piece in the active square to the given square
      */
     public movePieceTo(to: coord): BoardState {
         if (this.activeSq && !this.isActiveSq(to.file, to.rank) && this.isAvailableSquare(to.file, to.rank)) {
 
-            // TODO: check if piece can move
-
             // move piece to new square
-            const pieceMoved = this.movePiece(to);
+            const moves = this.movePiece(to);
 
-            if (pieceMoved) {
-                if (this.activeSq.piece) {
-                    this.activeSq.piece.hasMoved = true;
-                }
+            if (moves.length > 0) {
+
+                this.undoHistory.push(moves);
+                this.redoHistory = [];
+
                 // only switch player if a piece was moved
                 this.switchPlayer();
             }
@@ -112,6 +169,84 @@ export class BoardState {
         }
 
         return this;
+    }
+
+    /**
+     * moves a piece from -> to without checking if it is legal etc
+     * @returns a capture, if one was made
+     */
+    private makeUnvalidatedMove(from: coord, to: coord): capture | undefined {
+        let capture: capture | undefined;
+
+        const fromSq = this.getSquare(from.file, from.rank);
+        const pieceToMove = fromSq.liftPiece();
+
+        // set the piece on the sqare that the piece came from
+        const toSq = this.getSquare(to.file, to.rank);
+
+        // get the piece to take before you set the taking piece down
+        if (toSq.piece) {
+            capture = {
+                piece: toSq.piece,
+                coord: toSq.getCoordinates()
+            };
+        }
+
+        this.setPieceOn(pieceToMove, toSq);
+
+        return capture;
+    }
+
+    private makeHistoryMovesBackwards(moves: move[]): void {
+        moves.forEach(move => this.makeHistoryMoveBackwards(move));
+    }
+
+    /**
+     * moves a piece to -> from without checking if it is legal etc
+     * @param capture - optional: a capture to undo
+     */
+    private makeHistoryMoveBackwards({from, to, capture, reverse}: move): void {
+        const fromSq = this.getSquare(to.file, to.rank);
+        const pieceToMove = fromSq.liftPiece();
+        const toSq = this.getSquare(from.file, from.rank);
+
+        this.setPieceOn(pieceToMove, toSq);
+
+        // undo the capture
+        if (capture) {
+            this.setPieceOn(capture.piece, this.getSquare(capture.coord.file, capture.coord.rank));
+        }
+
+        // run the reverse callback if there is one
+        if (reverse) {
+            reverse();
+        }
+    }
+
+    private makeHistoryMovesForwards(moves: move[]): void {
+        moves.forEach(move => this.makeHistoryMoveForwards(move));
+    }
+
+    /**
+     * moves a piece from -> to without checking if it is legal etc
+     * @param capture - a capture to make, if one was made on a sqaure other than the 'to' sqaure
+     *      (usually for en passant captures when going forwards in history)
+     */
+    private makeHistoryMoveForwards({from, to, capture}: move): void {
+
+        const fromSq = this.getSquare(from.file, from.rank);
+        const pieceToMove = fromSq.liftPiece();
+        const toSq = this.getSquare(to.file, to.rank);
+
+        // capture the piece before you set the taking piece down
+        if (capture) {
+            const capturedSq = this.getSquare(capture.coord.file, capture.coord.rank);
+            capturedSq.liftPiece();
+
+            // TODO: put this into players stash of taken pieces
+        }
+
+        this.setPieceOn(pieceToMove, toSq);
     }
 
     private getSquareWithPiece(type: pieceType, color: pieceColor): Square | undefined {
@@ -128,18 +263,28 @@ export class BoardState {
     }
 
     /**
-     * @returns (boolean) if a piece was moved or not
+     * @returns a list of moves that were made
+     * 
+     * TODO: should a capture just be a move from the square -> to OFF the board and into the players stash?
+     * 
      */
-    private movePiece(to: coord): boolean {
+    private movePiece(to: coord): move[] {
         let pieceToMove: Piece | undefined;
+        const moves: move[] = [];
         const fromSq = this.activeSq;
         const toSq = this.state[to.file][to.rank];
 
         // capturing a piece
         if (fromSq && fromSq.piece && toSq && toSq.piece && !this.compareSquarePieceColor(fromSq, toSq)) {
-            this.capturePiece(toSq);
+            const capture = this.capturePiece(toSq); // capture the piece before you set down the taking piece
             pieceToMove = fromSq.liftPiece();
             this.setPieceOn(pieceToMove, toSq);
+
+            moves.push({
+                from: fromSq.getCoordinates(),
+                to: toSq.getCoordinates(),
+                capture
+            });
         }
         // capturing by en passant
         else if (
@@ -147,12 +292,24 @@ export class BoardState {
             this.compareSquareCoords(toSq, this.enPassantState.captureSquare) &&
             !this.compareSquarePieceColor(fromSq, this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank))
         ) {
-            this.capturePieceByEnPassant();
+            const capture = this.capturePieceByEnPassant(); // capture the piece before you set down the taking piece
             pieceToMove = fromSq.liftPiece();
             this.setPieceOn(pieceToMove, toSq);
+
+            moves.push({
+                from: fromSq.getCoordinates(),
+                to: toSq.getCoordinates(),
+                capture
+            });
         }
         // moving to an empty square
         else if (fromSq && fromSq.piece && !toSq.piece) {
+
+            moves.push({
+                from: fromSq.getCoordinates(),
+                to: toSq.getCoordinates(),
+                capture: undefined
+            });
 
             // castling - if moving a king more than 1 space
             if (fromSq.piece.type === 'king' && distanceBetweenFiles(fromSq.file, toSq.file) > 1) {
@@ -164,6 +321,12 @@ export class BoardState {
                     if (rookSq.piece) {
                         const rook = rookSq.liftPiece();
                         this.setPieceOn(rook, this.getSquare('f', fromSq.rank));
+
+                        moves.push({
+                            from: {file: 'h', rank: fromSq.rank},
+                            to: {file: 'f', rank: fromSq.rank},
+                            capture: undefined
+                        });
                     }
                 } else {
                     // long castling
@@ -171,6 +334,12 @@ export class BoardState {
                     if (rookSq.piece) {
                         const rook = rookSq.liftPiece();
                         this.setPieceOn(rook, this.getSquare('d', fromSq.rank));
+
+                        moves.push({
+                            from: {file: 'a', rank: fromSq.rank},
+                            to: {file: 'd', rank: fromSq.rank},
+                            capture: undefined
+                        });
                     }
                 }
             }
@@ -178,14 +347,22 @@ export class BoardState {
             // move piece (including castling king)
             pieceToMove = fromSq.liftPiece();
             this.setPieceOn(pieceToMove, toSq);
+
         }
 
-        // clear and set new en passant state
-        if (fromSq && pieceToMove) {
+        if (fromSq && pieceToMove && moves.length > 0) {
+            if (!pieceToMove.hasMoved) {
+                // set the has moved flag on the piece
+                pieceToMove.hasMoved = true;
+                // add a cleanup callback for reversing the state of the piece
+                moves[0].reverse = () => (pieceToMove as Piece).hasMoved = false
+            }
+
+            // clear and set new en passant state
             this.enPassantState = this.getEnPassantState(fromSq, toSq, pieceToMove);
         }
 
-        return !!pieceToMove;
+        return moves;
     }
 
     /**
@@ -234,27 +411,44 @@ export class BoardState {
     /**
      * Captures piece on given square
      */
-    private capturePiece(square: Square): void {
+    private capturePiece(square: Square): capture | undefined {
 
         // lift piece to be taken
-        const capturedPice = square.liftPiece();
+        const capturedPiece = square.liftPiece();
 
         // add captured piece to current players stash
         // TODO
+
+        if (capturedPiece) {
+            return {
+                piece: capturedPiece,
+                coord: square.getCoordinates()
+            };
+        }
 
     }
 
     /**
      * Captures piece as defined by the en passant state
      */
-    private capturePieceByEnPassant(): void {
+    private capturePieceByEnPassant(): capture | undefined {
         if (this.enPassantState?.pieceSquare) {
 
             // lift piece to be taken
-            const capturedPice = this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank).liftPiece();
+            const sq = this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank);
+            const capturedPice = sq.liftPiece();
 
-            // add captured piece to current players stash
-            // TODO
+            if (capturedPice) {
+
+                // add captured piece to current players stash
+                // TODO
+
+                return {
+                    piece: capturedPice,
+                    coord: sq.getCoordinates()
+                };
+            }
+
         }
     }
 
