@@ -1,13 +1,14 @@
 import { Piece } from '../pieces/piece';
-import { enPassantState, file, pieceColor, pieceType, rank, coord } from './types';
+import { enPassantState, file, pieceColor, pieceType, rank, coord, fenStringType } from './types';
 import * as pieces from '../pieces/pieces';
 import { Square } from './square';
 import { BoardNavigator } from './board-navigator';
-import { distanceBetweenFiles } from './utils';
+import { distanceBetweenFiles, getFileFrom, getRankFrom } from './utils';
 import { BoardScout } from './board-scout';
 
 export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
+const startFEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
 
 type capture = {
     piece: Piece;
@@ -49,7 +50,7 @@ export class BoardState {
 
     constructor() {
         this.initSquares();
-        this.initPieces();
+        this.loadPositionFromFen(startFEN);
         this.navigator = new BoardNavigator();
         this.scout = new BoardScout();
     }
@@ -109,6 +110,7 @@ export class BoardState {
 
     public back(): BoardState {
         if (this.undoHistory.length > 0) {
+            this.clearActiveSq();
             const movesToUndo = this.undoHistory.splice(-1, 1)[0];
             this.makeHistoryMovesBackwards(movesToUndo);
             this.redoHistory.push(movesToUndo);
@@ -119,6 +121,7 @@ export class BoardState {
 
     public forward(): BoardState {
         if (this.redoHistory.length > 0) {
+            this.clearActiveSq();
             const movesToRedo = this.redoHistory.splice(-1, 1)[0];
             this.makeHistoryMovesForwards(movesToRedo);
             this.undoHistory.push(movesToRedo);
@@ -475,29 +478,35 @@ export class BoardState {
         });
     }
 
-    private initPieces(): void {
+    private loadPositionFromFen(fen: string): void {
+        this.initSquares(); // clear state
 
-        // white pieces
-        this.addPiece(pieces.WHITE_ROOK, 'a', 1);
-        this.addPiece(pieces.WHITE_KNIGHT, 'b', 1);
-        this.addPiece(pieces.WHITE_BISHOP, 'c', 1);
-        this.addPiece(pieces.WHITE_QUEEN, 'd', 1);
-        this.addPiece(pieces.WHITE_KING, 'e', 1);
-        this.addPiece(pieces.WHITE_BISHOP, 'f', 1);
-        this.addPiece(pieces.WHITE_KNIGHT, 'g', 1);
-        this.addPiece(pieces.WHITE_ROOK, 'h', 1);
-        files.map(file => this.addPiece(pieces.WHITE_PAWN, file, 2));
+        const symbolMap = {
+            k: pieces.KING,
+            p: pieces.PAWN,
+            n: pieces.KNIGHT,
+            b: pieces.BISHOP,
+            r: pieces.ROOK,
+            q: pieces.QUEEN
+        };
 
-        // black pieces
-        this.addPiece(pieces.BLACK_ROOK, 'a', 8);
-        this.addPiece(pieces.BLACK_KNIGHT, 'b', 8);
-        this.addPiece(pieces.BLACK_BISHOP, 'c', 8);
-        this.addPiece(pieces.BLACK_QUEEN, 'd', 8);
-        this.addPiece(pieces.BLACK_KING, 'e', 8);
-        this.addPiece(pieces.BLACK_BISHOP, 'f', 8);
-        this.addPiece(pieces.BLACK_KNIGHT, 'g', 8);
-        this.addPiece(pieces.BLACK_ROOK, 'h', 8);
-        files.map(file => this.addPiece(pieces.BLACK_PAWN, file, 7));
+        let file: file = 'a', rank: rank = 8;
+
+        for (const symbol of fen) {
+            if (symbol === '/') {
+                file = 'a';
+                rank = getRankFrom(rank, -1);
+            } else {
+                if (isNaN(Number(symbol))) {
+                    const color = symbol === symbol.toUpperCase() ? pieces.WHITE : pieces.BLACK;
+                    const type = symbolMap[symbol.toLowerCase() as fenStringType];
+                    this.addPiece(new color[type](), file, rank);
+                    file = getFileFrom(file, 1);
+                } else {
+                    file = getFileFrom(file, Number(symbol));
+                }
+            }
+        }
     }
 
     /**

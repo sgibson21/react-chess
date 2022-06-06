@@ -6,6 +6,8 @@ export type pieceColor = 'white' | 'black';
 
 export type squareColor = 'light' | 'dark';
 
+export type fenStringType = 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
+
 export type pieceType = 'king' | 'queen' | 'rook' | 'bishop' | 'knight' | 'pawn';
 
 export type pieceImgKey = 'bb' | 'bk' | 'bn' | 'bp' | 'bq' | 'br' | 'wb' | 'wk' | 'wn' | 'wp' | 'wq' | 'wr';

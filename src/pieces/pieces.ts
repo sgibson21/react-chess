@@ -1,19 +1,63 @@
+import { pieceColor, pieceImgKey, piecePoints, pieceType } from "../board/types";
 import { Piece } from "./piece";
 
-export const WHITE_KING = new Piece('white', 'king', 'wk');
-export const BLACK_KING = new Piece('black', 'king', 'bk');
+const COLOR_WHITE: pieceColor = 'white';
+const COLOR_BLACK: pieceColor = 'black';
 
-export const WHITE_QUEEN = new Piece('white', 'queen', 'wq', 9);
-export const BLACK_QUEEN = new Piece('black', 'queen', 'bq', 9);
+export const KING: pieceType = 'king';
+export const QUEEN: pieceType = 'queen';
+export const ROOK: pieceType = 'rook';
+export const BISHOP: pieceType = 'bishop';
+export const KNIGHT: pieceType = 'knight';
+export const PAWN: pieceType = 'pawn';
 
-export const WHITE_ROOK = new Piece('white', 'rook', 'wr', 5);
-export const BLACK_ROOK = new Piece('black', 'rook', 'br', 5);
+export const WHITE = getColoredPieceBlueprint(COLOR_WHITE);
+export const BLACK = getColoredPieceBlueprint(COLOR_BLACK);
 
-export const WHITE_BISHOP = new Piece('white', 'bishop', 'wb', 3);
-export const BLACK_BISHOP = new Piece('black', 'bishop', 'bb', 3);
+const pieceColorSymbolMap = {
+    [COLOR_WHITE]: 'w',
+    [COLOR_BLACK]: 'b',
+};
 
-export const WHITE_KNIGHT = new Piece('white', 'knight', 'wn', 3);
-export const BLACK_KNIGHT = new Piece('black', 'knight', 'bn', 3);
+const pieceTypeSymbolMap = {
+    [KING]:   'k',
+    [QUEEN]:  'q',
+    [ROOK]:   'r',
+    [BISHOP]: 'b',
+    [KNIGHT]: 'n',
+    [PAWN]:   'p'
+};
 
-export const WHITE_PAWN = new Piece('white', 'pawn', 'wp', 1);
-export const BLACK_PAWN = new Piece('black', 'pawn', 'bp', 1);
+const pieceTypePointsMap = {
+    [KING]:   undefined,
+    [QUEEN]:  9,
+    [ROOK]:   5,
+    [BISHOP]: 3,
+    [KNIGHT]: 3,
+    [PAWN]:   1
+};
+
+function getColoredPieceBlueprint(color: pieceColor) {
+    return {
+        [KING]:   getPieceBlueprint(color, KING),
+        [QUEEN]:  getPieceBlueprint(color, QUEEN),
+        [ROOK]:   getPieceBlueprint(color, ROOK),
+        [BISHOP]: getPieceBlueprint(color, BISHOP),
+        [KNIGHT]: getPieceBlueprint(color, KNIGHT),
+        [PAWN]:   getPieceBlueprint(color, PAWN)
+    };
+}
+
+
+function getPieceBlueprint(color: pieceColor, type: pieceType) {
+    return class extends Piece {
+        constructor() {
+            super(
+                color,
+                type,
+                pieceColorSymbolMap[color] + pieceTypeSymbolMap[type] as pieceImgKey,
+                pieceTypePointsMap[type] as piecePoints | undefined
+            );
+        }
+    }
+}
