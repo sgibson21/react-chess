@@ -1,0 +1,76 @@
+.grid-piece {
+    /* width: 50px;
+    height: 50px; */
+    position: absolute;
+    transition: top 2s, left 2s;
+}
+
+.a {
+    left: 0;
+}
+
+.b {
+    left: 100px;
+}
+
+.c {
+    left: 200px;
+}
+
+.d {
+    left: 300px;
+}
+
+.e {
+    left: 400px;
+}
+
+.f {
+    left: 500px;
+}
+
+.g {
+    left: 600px;
+}
+
+.h {
+    left: 700px;
+}
+
+._8 {
+    top: 0;
+}
+
+._7 {
+    top: 100px;
+}
+
+._6 {
+    top: 200px;
+}
+
+._5 {
+    top: 300px;
+}
+
+._4 {
+    top: 400px;
+}
+
+._3 {
+    top: 500px;
+}
+
+._2 {
+    top: 600px;
+}
+
+._1 {
+    top: 700px;
+}
+
+.test {
+    width: 40px;
+    height: 40px;
+    background-color: blueviolet;
+}

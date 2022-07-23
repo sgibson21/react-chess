@@ -1,10 +1,9 @@
 import { CSSProperties } from 'react';
 import { useDragLayer, XYCoord } from 'react-dnd';
-import { BoardState } from './board-state';
-
-interface CustomDragLayerProps {
-    board: BoardState;
-}
+import { Piece } from '../pieces/piece';
+import { BoardInternalState, BoardState } from './board-state';
+import { getSquare } from './board-utils';
+import { file, rank } from './types';
 
 const layerStyles: CSSProperties = {
     position: 'fixed',
@@ -30,7 +29,7 @@ function getItemStyles(currentOffset: XYCoord | null) {
     }
   }
 
-export const CustomDragLayer = ({ board }: CustomDragLayerProps) => {
+export const CustomDragLayer = ({ board }: { board: BoardInternalState}) => {
 
     const { item, isDragging, currentOffset } = useDragLayer(monitor => ({
         item: monitor.getItem(),
@@ -42,7 +41,10 @@ export const CustomDragLayer = ({ board }: CustomDragLayerProps) => {
         return null;
     }
 
-    const piece = board.getSquare(item.file, item.rank).piece;
+    // console.log('custom drag layer item:', item)
+    // TODO: make sure dragable/movable piece is in scop of useDrop
+
+    const piece = getSquare(item.file, item.rank, board).piece;
 
     return (
         <div style={layerStyles}>

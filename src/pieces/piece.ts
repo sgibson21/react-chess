@@ -8,6 +8,7 @@ export class Piece {
         public color: pieceColor,
         public type: pieceType,
         public imgClass: pieceImgKey,
-        public points?: piecePoints
+        public points: piecePoints,
+        public id: string
     ) { }
 }

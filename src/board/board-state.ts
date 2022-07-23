@@ -1,14 +1,25 @@
 import { Piece } from '../pieces/piece';
 import { enPassantState, file, pieceColor, pieceType, rank, coord, fenStringType } from './types';
 import * as pieces from '../pieces/pieces';
-import { Square } from './square';
+import { getCoordinates, liftPiece, setPiece, Square } from './square';
 import { BoardNavigator } from './board-navigator';
 import { distanceBetweenFiles, getFileFrom, getRankFrom } from './utils';
 import { BoardScout } from './board-scout';
+import { LocatedPiece } from './Board';
 
 export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
 const startFEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+
+export type BoardInternalState = {
+    state: boardState;
+    undoHistory: move[][];
+    redoHistory: move[][];
+    activeSq: Square | null;
+    availableSquares: Square[];
+    playersTurn: pieceColor;
+    enPassantState: enPassantState | undefined;
+};
 
 type capture = {
     piece: Piece;
@@ -25,12 +36,14 @@ type move = {
     reverse?: () => void;
 };
 
+export type boardState = {
+    [file: string]: {
+        [rank: number]: Square
+    }
+}
+
 export class BoardState {
-    public state: {
-        [file: string]: {
-            [rank: number]: Square
-        }
-    } = {};
+    public state: boardState = {};
 
     private undoHistory: move[][] = [];
 
@@ -48,27 +61,54 @@ export class BoardState {
 
     private enPassantState: enPassantState | undefined;
 
-    constructor() {
-        this.initSquares();
-        this.loadPositionFromFen(startFEN);
+    constructor(board?: BoardInternalState) {
+        if (board) {
+            const { state, undoHistory, redoHistory, activeSq, availableSquares, playersTurn, enPassantState } = board;
+            this.state = state;
+            this.undoHistory = undoHistory;
+            this.redoHistory = redoHistory;
+            this.activeSq = activeSq;
+            this.availableSquares = availableSquares;
+            this.playersTurn = playersTurn;
+            this.enPassantState = enPassantState;
+        } else {
+            this.initSquares();
+            this.loadPositionFromFen(startFEN);
+        }
         this.navigator = new BoardNavigator();
         this.scout = new BoardScout();
+    }
+
+    public getState(): any {
+        return {
+            state: this.state,
+            undoHistory: this.undoHistory,
+            redoHistory: this.redoHistory,
+            activeSq: this.activeSq,
+            availableSquares: this.availableSquares,
+            playersTurn: this.playersTurn,
+            enPassantState: this.enPassantState
+        };
     }
 
     public getSquare(file: file, rank: rank): Square {
         return this.state[file][rank];
     }
 
-    public setActiveSquare(file: file, rank: rank): BoardState {
-        this.activeSq = this.state[file][rank];
-        this.availableSquares = this.navigator.getPieceMovement(this, this.activeSq);
-        return this;
+    public getActiveSquare(): Square | null {
+        return this.activeSq;
     }
 
-    public clearActiveSq(): BoardState {
+    public setActiveSquare(file: file, rank: rank): BoardInternalState {
+        this.activeSq = this.state[file][rank];
+        this.availableSquares = this.navigator.getPieceMovement(this, this.activeSq);
+        return this.getState();
+    }
+
+    public clearActiveSq(): BoardInternalState {
         this.activeSq = null;
         this.clearAvailableSquares();
-        return this;
+        return this.getState();
     }
 
     public hasActiveSq(): boolean {
@@ -89,7 +129,7 @@ export class BoardState {
 
     public isInCheck(): boolean {
         const kingSq = this.getSquareWithPiece('king', this.playersTurn);
-        return !!kingSq && this.scout.isAttacked(this, kingSq.getCoordinates());
+        return !!kingSq && this.scout.isAttacked(this, getCoordinates(kingSq));
     }
 
     public getPlayingColor(): pieceColor {
@@ -108,7 +148,7 @@ export class BoardState {
         return !!this.enPassantState && this.enPassantState.pieceSquare;
     }
 
-    public back(): BoardState {
+    public back(): BoardInternalState {
         if (this.undoHistory.length > 0) {
             this.clearActiveSq();
             const movesToUndo = this.undoHistory.splice(-1, 1)[0];
@@ -116,10 +156,10 @@ export class BoardState {
             this.redoHistory.push(movesToUndo);
             this.switchPlayer();
         }
-        return this;
+        return this.getState();
     }
 
-    public forward(): BoardState {
+    public forward(): BoardInternalState {
         if (this.redoHistory.length > 0) {
             this.clearActiveSq();
             const movesToRedo = this.redoHistory.splice(-1, 1)[0];
@@ -127,7 +167,7 @@ export class BoardState {
             this.undoHistory.push(movesToRedo);
             this.switchPlayer();
         }
-        return this;
+        return this.getState();
     }
 
     /**
@@ -152,7 +192,8 @@ export class BoardState {
     /**
      * Moves the piece in the active square to the given square
      */
-    public movePieceTo(to: coord): BoardState {
+    public movePieceTo(to: coord): BoardInternalState {
+        console.log('moving piece from', this.activeSq, 'to', to)
         if (this.activeSq && !this.isActiveSq(to.file, to.rank) && this.isAvailableSquare(to.file, to.rank)) {
 
             // move piece to new square
@@ -171,7 +212,39 @@ export class BoardState {
             this.clearAvailableSquares();
         }
 
-        return this;
+        return this.getState();
+    }
+
+    public getLocatedPieces(): LocatedPiece[] {
+        const locatedPieces: LocatedPiece[] = [];
+        for (const file of files) {
+            for (const rank of ranks) {
+                const sq = this.state[file] && this.state[file][rank];
+                if (sq && sq.piece) {
+                    locatedPieces.push({
+                        file: file,
+                        rank: rank,
+                        piece: sq.piece
+                    });
+                }
+            }
+        }
+        return locatedPieces;
+    }
+
+    public log(): void {
+        console.log(
+            'state',
+            this.state,
+            '\nactive sq',
+            this.activeSq,
+            '\navailableSquares',
+            this.availableSquares,
+            '\nplayersTurn',
+            this.playersTurn,
+            '\nenPassantState',
+            this.enPassantState
+        );
     }
 
     /**
@@ -182,7 +255,7 @@ export class BoardState {
         let capture: capture | undefined;
 
         const fromSq = this.getSquare(from.file, from.rank);
-        const pieceToMove = fromSq.liftPiece();
+        const pieceToMove = liftPiece(fromSq);
 
         // set the piece on the sqare that the piece came from
         const toSq = this.getSquare(to.file, to.rank);
@@ -191,7 +264,7 @@ export class BoardState {
         if (toSq.piece) {
             capture = {
                 piece: toSq.piece,
-                coord: toSq.getCoordinates()
+                coord: getCoordinates(toSq)
             };
         }
 
@@ -206,11 +279,10 @@ export class BoardState {
 
     /**
      * moves a piece to -> from without checking if it is legal etc
-     * @param capture - optional: a capture to undo
      */
     private makeHistoryMoveBackwards({from, to, capture, reverse}: move): void {
         const fromSq = this.getSquare(to.file, to.rank);
-        const pieceToMove = fromSq.liftPiece();
+        const pieceToMove = liftPiece(fromSq);
         const toSq = this.getSquare(from.file, from.rank);
 
         this.setPieceOn(pieceToMove, toSq);
@@ -238,13 +310,13 @@ export class BoardState {
     private makeHistoryMoveForwards({from, to, capture}: move): void {
 
         const fromSq = this.getSquare(from.file, from.rank);
-        const pieceToMove = fromSq.liftPiece();
+        const pieceToMove = liftPiece(fromSq);
         const toSq = this.getSquare(to.file, to.rank);
 
         // capture the piece before you set the taking piece down
         if (capture) {
             const capturedSq = this.getSquare(capture.coord.file, capture.coord.rank);
-            capturedSq.liftPiece();
+            liftPiece(capturedSq);
 
             // TODO: put this into players stash of taken pieces
         }
@@ -280,12 +352,12 @@ export class BoardState {
         // capturing a piece
         if (fromSq && fromSq.piece && toSq && toSq.piece && !this.compareSquarePieceColor(fromSq, toSq)) {
             const capture = this.capturePiece(toSq); // capture the piece before you set down the taking piece
-            pieceToMove = fromSq.liftPiece();
+            pieceToMove = liftPiece(fromSq);
             this.setPieceOn(pieceToMove, toSq);
 
             moves.push({
-                from: fromSq.getCoordinates(),
-                to: toSq.getCoordinates(),
+                from: getCoordinates(fromSq),
+                to: getCoordinates(toSq),
                 capture
             });
         }
@@ -296,12 +368,12 @@ export class BoardState {
             !this.compareSquarePieceColor(fromSq, this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank))
         ) {
             const capture = this.capturePieceByEnPassant(); // capture the piece before you set down the taking piece
-            pieceToMove = fromSq.liftPiece();
+            pieceToMove = liftPiece(fromSq);
             this.setPieceOn(pieceToMove, toSq);
 
             moves.push({
-                from: fromSq.getCoordinates(),
-                to: toSq.getCoordinates(),
+                from: getCoordinates(fromSq),
+                to: getCoordinates(toSq),
                 capture
             });
         }
@@ -309,8 +381,8 @@ export class BoardState {
         else if (fromSq && fromSq.piece && !toSq.piece) {
 
             moves.push({
-                from: fromSq.getCoordinates(),
-                to: toSq.getCoordinates(),
+                from: getCoordinates(fromSq),
+                to: getCoordinates(toSq),
                 capture: undefined
             });
 
@@ -322,7 +394,7 @@ export class BoardState {
                     // short castling
                     const rookSq = this.getSquare('h', fromSq.rank);
                     if (rookSq.piece) {
-                        const rook = rookSq.liftPiece();
+                        const rook = liftPiece(rookSq);
                         this.setPieceOn(rook, this.getSquare('f', fromSq.rank));
 
                         moves.push({
@@ -335,7 +407,7 @@ export class BoardState {
                     // long castling
                     const rookSq = this.getSquare('a', fromSq.rank);
                     if (rookSq.piece) {
-                        const rook = rookSq.liftPiece();
+                        const rook = liftPiece(rookSq);
                         this.setPieceOn(rook, this.getSquare('d', fromSq.rank));
 
                         moves.push({
@@ -348,7 +420,7 @@ export class BoardState {
             }
 
             // move piece (including castling king)
-            pieceToMove = fromSq.liftPiece();
+            pieceToMove = liftPiece(fromSq);
             this.setPieceOn(pieceToMove, toSq);
 
         }
@@ -407,7 +479,7 @@ export class BoardState {
      */
     private setPieceOn(piece: Piece | undefined, square: Square): void {
         if (piece) {
-            square.setPiece(piece);
+            setPiece(piece, square);
         }
     }
 
@@ -417,7 +489,7 @@ export class BoardState {
     private capturePiece(square: Square): capture | undefined {
 
         // lift piece to be taken
-        const capturedPiece = square.liftPiece();
+        const capturedPiece = liftPiece(square);
 
         // add captured piece to current players stash
         // TODO
@@ -425,7 +497,7 @@ export class BoardState {
         if (capturedPiece) {
             return {
                 piece: capturedPiece,
-                coord: square.getCoordinates()
+                coord: getCoordinates(square)
             };
         }
 
@@ -439,7 +511,7 @@ export class BoardState {
 
             // lift piece to be taken
             const sq = this.getSquare(this.enPassantState.pieceSquare.file, this.enPassantState.pieceSquare.rank);
-            const capturedPice = sq.liftPiece();
+            const capturedPice = liftPiece(sq);
 
             if (capturedPice) {
 
@@ -448,7 +520,7 @@ export class BoardState {
 
                 return {
                     piece: capturedPice,
-                    coord: sq.getCoordinates()
+                    coord: getCoordinates(sq)
                 };
             }
 
@@ -469,10 +541,20 @@ export class BoardState {
             ranks.forEach(rank => {
                 if (!this.state[file]) {
                     this.state[file] = {
-                        [rank]: new Square(file, rank)
+                        [rank]: {
+                            file,
+                            rank,
+                            available: false,
+                            piece: null
+                        }
                     };
                 } else if (!this.state[file][rank]) {
-                    this.state[file][rank] = new Square(file, rank);
+                    this.state[file][rank] = {
+                        file,
+                        rank,
+                        available: false,
+                        piece: null
+                    };
                 }
             })
         });
@@ -500,7 +582,7 @@ export class BoardState {
                 if (isNaN(Number(symbol))) {
                     const color = symbol === symbol.toUpperCase() ? pieces.WHITE : pieces.BLACK;
                     const type = symbolMap[symbol.toLowerCase() as fenStringType];
-                    this.addPiece(new color[type](), file, rank);
+                    this.addPiece(new color[type]() as Piece, file, rank);
                     file = getFileFrom(file, 1);
                 } else {
                     file = getFileFrom(file, Number(symbol));
@@ -515,7 +597,7 @@ export class BoardState {
     private addPiece(piece: Piece, file: file, rank: rank): void {
         const square = this.state[file][rank];
         if (square) {
-            square.setPiece(piece);
+            setPiece(piece, square);
         }
     }
 }

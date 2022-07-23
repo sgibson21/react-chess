@@ -1,5 +1,5 @@
 import { BoardState } from './board-state';
-import { Square } from './square';
+import { getCoordinates, Square } from './square';
 import { pieceType, file, rank, coord, direction } from './types';
 import { getFileFrom, getRankFrom, getSquareFrom } from './utils';
 
@@ -20,7 +20,7 @@ export class BoardNavigator {
         if (piece) {
             return this.navigatorMap[piece.type](boardState, square)
                 .filter(toSq => {
-                    const move = {from: square.getCoordinates(), to: toSq.getCoordinates()};
+                    const move = {from: getCoordinates(square), to: getCoordinates(toSq)};
                     return !boardState.simulateMove(move, sim => sim.isInCheck());
                 });
         }
@@ -167,7 +167,7 @@ export class BoardNavigator {
                     // path to king's final position should not be in the line of sight of an attacking piece
                     const pathInCheck: boolean = boardState.simulateMove({
                         from: {file: square.file, rank: square.rank},
-                        to: {file: pathToRookShort[0].file, rank: pathToRookShort[0].rank}
+                        to: {file: pathToRookLong[0].file, rank: pathToRookLong[0].rank}
                     }, sim => sim.isInCheck());
 
                     if (!pathInCheck) {
