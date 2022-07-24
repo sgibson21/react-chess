@@ -1,10 +1,6 @@
 import { CSSProperties } from 'react';
 import { useDragLayer, XYCoord } from 'react-dnd';
-import { BoardState } from './board-state';
-
-interface CustomDragLayerProps {
-    board: BoardState;
-}
+import { Square } from './square';
 
 const layerStyles: CSSProperties = {
     position: 'fixed',
@@ -30,7 +26,7 @@ function getItemStyles(currentOffset: XYCoord | null) {
     }
   }
 
-export const CustomDragLayer = ({ board }: CustomDragLayerProps) => {
+export const CustomDragLayer = ({ activeSquare }: { activeSquare: Square | null }) => {
 
     const { item, isDragging, currentOffset } = useDragLayer(monitor => ({
         item: monitor.getItem(),
@@ -38,16 +34,22 @@ export const CustomDragLayer = ({ board }: CustomDragLayerProps) => {
         isDragging: monitor.isDragging(),
     }));
 
+    if (!activeSquare || !item) {
+        return null;
+    }
+
+    if (activeSquare.file !== item.file || activeSquare.rank !== item.rank) {
+        return null;
+    }
+
     if (!isDragging) {
         return null;
     }
 
-    const piece = board.getSquare(item.file, item.rank).piece;
-
     return (
         <div style={layerStyles}>
             <div style={getItemStyles(currentOffset)}>
-                <div className={`piece ${piece?.imgClass}`}></div>
+                <div className={`piece ${activeSquare.piece?.imgClass}`}></div>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
-import { pieceColor, pieceImgKey, piecePoints, pieceType } from "../board/types";
-import { Piece } from "./piece";
+import { pieceColor, pieceImgKey, piecePoints, pieceType } from '../board/types';
+import { Piece } from './piece';
 
 const COLOR_WHITE: pieceColor = 'white';
 const COLOR_BLACK: pieceColor = 'black';
@@ -56,7 +56,8 @@ function getPieceBlueprint(color: pieceColor, type: pieceType) {
                 color,
                 type,
                 pieceColorSymbolMap[color] + pieceTypeSymbolMap[type] as pieceImgKey,
-                pieceTypePointsMap[type] as piecePoints | undefined
+                pieceTypePointsMap[type] as piecePoints,
+                Math.random().toString(36).replace(/[^a-z]+/g, '').substr(2, 10)
             );
         }
     }

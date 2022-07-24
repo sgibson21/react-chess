@@ -2,6 +2,21 @@
     width: 800px;
     margin: 0 auto;
     user-select: none;
+    position: relative;
+}
+
+.piece-grid {
+    position: absolute;
+    top: 0;
+}
+
+.piece-grid-square {
+    width: 100px;
+    height: 100px;
+    display: table-cell;
+    background-color: pink;
+    opacity: 0.5;
+    position: relative;
 }
 
 .square {
