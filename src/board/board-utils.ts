@@ -2,14 +2,29 @@ import { Piece } from '../pieces/piece';
 import { BISHOP, BLACK, KING, KNIGHT, PAWN, QUEEN, ROOK, WHITE } from '../pieces/pieces';
 import { LocatedPiece } from './Board';
 import { getPieceMovement } from './board-navigator-utils';
-import { BoardScout } from './board-scout';
 import { isAttacked } from './board-scout-utils';
-import { BoardInternalState, boardState, files, ranks } from './board-state';
 import { Square, getCoordinates, liftPiece, setPiece } from './square';
 import { coord, enPassantState, fenStringType, file, pieceColor, pieceType, rank } from './types';
-import { distanceBetweenFiles, getFileFrom, getRankFrom } from './utils';
 
+export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
 export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+
+export type BoardInternalState = {
+    state: boardState;
+    undoHistory: move[][];
+    redoHistory: move[][];
+    activeSq: Square | null;
+    availableSquares: Square[];
+    playersTurn: pieceColor;
+    enPassantState: enPassantState | undefined;
+};
+
+export type boardState = {
+    [file: string]: {
+        [rank: number]: Square
+    }
+}
 
 type capture = {
     piece: Piece;
@@ -50,12 +65,6 @@ export const setActiveSquare: (file: file, rank: rank, state: BoardInternalState
     return state;
 }
 
-const clearAvailableSquares = (state: BoardInternalState) => {
-    state = {...state};
-    state.availableSquares = [];
-    return state;
-}
-
 export const clearActiveSq: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
     state = {...state};
     state.activeSq = null;
@@ -79,13 +88,13 @@ export const isOwnPiece = (file: file, rank: rank, state: BoardInternalState) =>
     return getSquare(file, rank, state).piece?.color === state.playersTurn;
 }
 
-const getSquareWithPiece: (type: pieceType, color: pieceColor, state: BoardInternalState) => Square | undefined = (type: pieceType, color: pieceColor, state: BoardInternalState) => {
+export const getSquareByPieceID: (id: string, state: BoardInternalState) => Square | undefined =  (id: string, state: BoardInternalState) => {
     let square: Square | undefined;
     for (const file of files) {
         for (const rank of ranks) {
             const sq = state.state[file][rank];
-            if (sq.piece && sq.piece.type === type && sq.piece.color === color) {
-                square = sq;
+            if (sq.piece && sq.piece.id === id) {
+                return sq;
             }
         }
     }
@@ -111,6 +120,195 @@ export const getEnPassantCaptureSq: (state: BoardInternalState) => coord | false
 
 export const getEnPassantPieceSq: (state: BoardInternalState) => coord | false = (state: BoardInternalState) => {
     return !!state.enPassantState && state.enPassantState.pieceSquare;
+}
+
+export const back: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
+    state = {...state};
+    if (state.undoHistory.length > 0) {
+        clearActiveSq(state);
+        const movesToUndo = state.undoHistory.splice(-1, 1)[0];
+        makeHistoryMovesBackwards(movesToUndo, state);
+        state.redoHistory.push(movesToUndo);
+        switchPlayer(state);
+    }
+    return state;
+}
+
+export const forward: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
+    state = {...state};
+    if (state.redoHistory.length > 0) {
+        clearActiveSq(state);
+        const movesToRedo = state.redoHistory.splice(-1, 1)[0];
+        makeHistoryMovesForwards(movesToRedo, state);
+        state.undoHistory.push(movesToRedo);
+        switchPlayer(state);
+    }
+    return state;
+}
+
+/**
+ * Allows you to simulate a piece moving, providing the board state to the callback to run calculations,
+ * then undos the move after the callback finishes
+ * @param move - the move to simulate
+ * @param callback - the callabck function in which to run calculations on the simulated board state
+ * @returns - the return value of the callback
+ */
+ export const simulateMove: <T>({ move, callback, state }: SimulateMoveData<T>) => T = <T>({ move, callback, state }: SimulateMoveData<T>) => {
+    // make move
+    const capture = makeUnvalidatedMove(move.from, move.to, state);
+
+    const returnValue = callback(state);
+
+    // undo move
+    makeHistoryMoveBackwards({
+        from: move.from,
+        to: move.to,
+        capture: capture
+    }, state);
+
+    return returnValue;
+}
+
+
+/**
+ * Moves the piece in the active square to the given square
+ */
+ export const movePieceTo: (to: coord, state: BoardInternalState) => BoardInternalState = (to: coord, state: BoardInternalState) => {
+    state = {...state};
+    if (state.activeSq && !isActiveSq(to.file, to.rank, state) && isAvailableSquare(to.file, to.rank, state)) {
+
+        // move piece to new square
+        const moves = movePiece(to, state);
+
+        if (moves.length > 0) {
+
+            state.undoHistory.push(moves);
+            state.redoHistory = [];
+
+            // only switch player if a piece was moved
+            switchPlayer(state);
+        }
+
+        state = clearActiveSq({...state});
+        state = clearAvailableSquares(state);
+    }
+
+    return state;
+}
+
+export const getLocatedPieces: (state: BoardInternalState) => LocatedPiece[] = (state: BoardInternalState) => {
+    const locatedPieces: LocatedPiece[] = [];
+    for (const file of files) {
+        for (const rank of ranks) {
+            const sq = state.state[file] && state.state[file][rank];
+            if (sq && sq.piece) {
+                locatedPieces.push({
+                    file: file,
+                    rank: rank,
+                    piece: sq.piece
+                });
+            }
+        }
+    }
+    return locatedPieces;
+}
+
+export const initBoard: () => BoardInternalState = () => {
+    return {
+        state: initSquares(),
+        activeSq: null,
+        availableSquares: [],
+        enPassantState: undefined,
+        playersTurn: 'white',
+        redoHistory: [],
+        undoHistory: []
+    };
+}
+
+export const loadPositionFromFen: (fen: string, state: BoardInternalState) => BoardInternalState = (fen: string, state: BoardInternalState) => {
+    state = {...state};
+    state.state = initSquares(); // clear state
+
+    const symbolMap = {
+        k: KING,
+        p: PAWN,
+        n: KNIGHT,
+        b: BISHOP,
+        r: ROOK,
+        q: QUEEN
+    };
+
+    let file: file = 'a', rank: rank = 8;
+
+    for (const symbol of fen) {
+        if (symbol === '/') {
+            file = 'a';
+            rank = getRankFrom(rank, -1);
+        } else {
+            if (isNaN(Number(symbol))) {
+                const color = symbol === symbol.toUpperCase() ? WHITE : BLACK;
+                const type = symbolMap[symbol.toLowerCase() as fenStringType];
+                addPiece(new color[type]() as Piece, file, rank, state);
+                file = getFileFrom(file, 1);
+            } else {
+                file = getFileFrom(file, Number(symbol));
+            }
+        }
+    }
+
+    return state;
+}
+
+/**
+ * Gets the coordinate { file, rank } of the square [fileCount] and [rankCount] away from the given square
+ */
+export const getSquareFrom = (fromFile: file, fileCount: number, fromRank: rank, rankCount: number): coord | undefined => {
+    const file = getFileFrom(fromFile, fileCount);
+    const rank = getRankFrom(fromRank, rankCount);
+    if (file && rank) {
+        return { file, rank };
+    }
+ }
+
+/**
+ * Gets the file that is [count] many files from the file provided
+ * @param file 
+ * @param count 
+ * @returns 
+ */
+export const getFileFrom = (file: file, count: number): file => {
+    const fileIndex = files.indexOf(file);
+    return files[fileIndex + count];
+}
+
+/**
+ * Gets the rank that is [count] many ranks from the rank provided
+ * @param rank 
+ * @param count 
+ * @returns 
+ */
+const getRankFrom = (rank: rank, count: number): rank => {
+    const rankIndex = ranks.indexOf(rank);
+    return ranks[rankIndex + count];
+}
+
+const clearAvailableSquares = (state: BoardInternalState) => {
+    state = {...state};
+    state.availableSquares = [];
+    return state;
+}
+
+const getSquareWithPiece: (type: pieceType, color: pieceColor, state: BoardInternalState) => Square | undefined = (type: pieceType, color: pieceColor, state: BoardInternalState) => {
+    let square: Square | undefined;
+    for (const file of files) {
+        for (const rank of ranks) {
+            const sq = state.state[file][rank];
+            if (sq.piece && sq.piece.type === type && sq.piece.color === color) {
+                square = sq;
+            }
+        }
+    }
+    return square;
 }
 
 /**
@@ -177,30 +375,6 @@ const switchPlayer: (state: BoardInternalState) => void = (state: BoardInternalS
     state.playersTurn = state.playersTurn === 'white' ? 'black' : 'white';
 }
 
-export const back: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
-    state = {...state};
-    if (state.undoHistory.length > 0) {
-        clearActiveSq(state);
-        const movesToUndo = state.undoHistory.splice(-1, 1)[0];
-        makeHistoryMovesBackwards(movesToUndo, state);
-        state.redoHistory.push(movesToUndo);
-        switchPlayer(state);
-    }
-    return state;
-}
-
-export const forward: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
-    state = {...state};
-    if (state.redoHistory.length > 0) {
-        clearActiveSq(state);
-        const movesToRedo = state.redoHistory.splice(-1, 1)[0];
-        makeHistoryMovesForwards(movesToRedo, state);
-        state.undoHistory.push(movesToRedo);
-        switchPlayer(state);
-    }
-    return state;
-}
-
 /**
  * moves a piece from -> to without checking if it is legal etc
  * @returns a capture, if one was made
@@ -225,29 +399,6 @@ const makeUnvalidatedMove: (from: coord, to: coord, state: BoardInternalState) =
     setPieceOn(pieceToMove, toSq);
 
     return capture;
-}
-
-/**
- * Allows you to simulate a piece moving, providing the board state to the callback to run calculations,
- * then undos the move after the callback finishes
- * @param move - the move to simulate
- * @param callback - the callabck function in which to run calculations on the simulated board state
- * @returns - the return value of the callback
- */
-export const simulateMove: <T>({ move, callback, state }: SimulateMoveData<T>) => T = <T>({ move, callback, state }: SimulateMoveData<T>) => {
-    // make move
-    const capture = makeUnvalidatedMove(move.from, move.to, state);
-
-    const returnValue = callback(state);
-
-    // undo move
-    makeHistoryMoveBackwards({
-        from: move.from,
-        to: move.to,
-        capture: capture
-    }, state);
-
-    return returnValue;
 }
 
 /**
@@ -430,49 +581,6 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
     return moves;
 }
 
-/**
- * Moves the piece in the active square to the given square
- */
-export const movePieceTo: (to: coord, state: BoardInternalState) => BoardInternalState = (to: coord, state: BoardInternalState) => {
-    state = {...state};
-    if (state.activeSq && !isActiveSq(to.file, to.rank, state) && isAvailableSquare(to.file, to.rank, state)) {
-
-        // move piece to new square
-        const moves = movePiece(to, state);
-
-        if (moves.length > 0) {
-
-            state.undoHistory.push(moves);
-            state.redoHistory = [];
-
-            // only switch player if a piece was moved
-            switchPlayer(state);
-        }
-
-        state = clearActiveSq({...state});
-        state = clearAvailableSquares(state);
-    }
-
-    return state;
-}
-
-export const getLocatedPieces: (state: BoardInternalState) => LocatedPiece[] = (state: BoardInternalState) => {
-    const locatedPieces: LocatedPiece[] = [];
-    for (const file of files) {
-        for (const rank of ranks) {
-            const sq = state.state[file] && state.state[file][rank];
-            if (sq && sq.piece) {
-                locatedPieces.push({
-                    file: file,
-                    rank: rank,
-                    piece: sq.piece
-                });
-            }
-        }
-    }
-    return locatedPieces;
-}
-
 const initSquares: () => boardState = () => {
     const state: boardState = {};
     files.forEach(file => {
@@ -499,58 +607,20 @@ const initSquares: () => boardState = () => {
     return state;
 }
 
-export const initBoard: () => BoardInternalState = () => {
-    return {
-        state: initSquares(),
-        activeSq: null,
-        availableSquares: [],
-        enPassantState: undefined,
-        playersTurn: 'white',
-        redoHistory: [],
-        undoHistory: []
-    };
-}
-
 /**
  * Helper method for adding new pieces to the board
  */
-const addPiece = (piece: Piece, file: file, rank: rank, state: BoardInternalState) => {
+ const addPiece = (piece: Piece, file: file, rank: rank, state: BoardInternalState) => {
     const square = state.state[file][rank];
     if (square) {
         setPiece(piece, square);
     }
 }
 
-export const loadPositionFromFen: (fen: string, state: BoardInternalState) => BoardInternalState = (fen: string, state: BoardInternalState) => {
-    state = {...state};
-    state.state = initSquares(); // clear state
-
-    const symbolMap = {
-        k: KING,
-        p: PAWN,
-        n: KNIGHT,
-        b: BISHOP,
-        r: ROOK,
-        q: QUEEN
-    };
-
-    let file: file = 'a', rank: rank = 8;
-
-    for (const symbol of fen) {
-        if (symbol === '/') {
-            file = 'a';
-            rank = getRankFrom(rank, -1);
-        } else {
-            if (isNaN(Number(symbol))) {
-                const color = symbol === symbol.toUpperCase() ? WHITE : BLACK;
-                const type = symbolMap[symbol.toLowerCase() as fenStringType];
-                addPiece(new color[type]() as Piece, file, rank, state);
-                file = getFileFrom(file, 1);
-            } else {
-                file = getFileFrom(file, Number(symbol));
-            }
-        }
-    }
-
-    return state;
-}
+/**
+ * Gets the distance between two files
+ * @param from 
+ * @param to 
+ * @returns 
+ */
+const distanceBetweenFiles = (from: file, to: file) => Math.abs(files.indexOf(from) - files.indexOf(to));

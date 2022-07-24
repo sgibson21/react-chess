@@ -1,37 +1,30 @@
 import { useDrop } from 'react-dnd';
-import { DraggablePiece } from './DraggablePiece';
-import { file, rank } from './types';
 import { getColor, Square } from './square';
-import { BoardInternalState } from './board-state';
 
 interface SquareProps {
     square: Square;
-    onSquareClick: (file: file, rank: rank) => void;
-    onDragStart: (file: file, rank: rank) => void;
     isActive: boolean;
     isAvailable: boolean;
-    onDrop: (file: file, rank: rank) => void;
+    onClick: () => void;
+    onDrop: () => void;
 }
 
-export const SquareEl = ({ square, onSquareClick, onDragStart, isActive, isAvailable, onDrop }: SquareProps) => {
+export const SquareEl = ({ square, isActive, isAvailable, onClick, onDrop }: SquareProps) => {
 
     const { file, rank } = square;
     const sqColor = getColor(square);
 
     const [{ isOver }, drop] = useDrop(() => ({
-        accept: 'piece', // TODO: reference to DraggablePiece.type
-        drop: () => onDrop(file, rank),
+        accept: 'piece',
+        drop: () => onDrop(),
         collect: monitor => ({ isOver: !!monitor.isOver() })
-    }), []);
-
-    // console.log('sq el...');
+    }), [onDrop]);
 
     return (
         <div
             ref={drop}
             className={`square ${sqColor} ${isActive && 'active'} ${isOver && 'is-over'}`}
-            onClick={() => onSquareClick(file, rank)}
-            onDragStart={() => onDragStart(file, rank)}
+            onClick={() => onClick()}
         >
             {
                 rank === 1 &&
@@ -44,10 +37,6 @@ export const SquareEl = ({ square, onSquareClick, onDragStart, isActive, isAvail
             {
                 isAvailable && !square.piece &&
                 <div className="available-indicator"></div>
-            }
-            {
-                square.piece &&
-                <DraggablePiece piece={square.piece} file={file} rank={rank} onDragStart={onDragStart}/>
             }
             {
                 square.piece && isAvailable &&

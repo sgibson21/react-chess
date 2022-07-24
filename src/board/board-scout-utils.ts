@@ -1,8 +1,12 @@
-import { Piece } from "../pieces/piece";
-import { BoardInternalState, BoardState } from "./board-state";
-import { getPlayingColor, getPlayingDirection, getSquare } from "./board-utils";
-import { coord, direction, knightDirection, pieceColor, pieceType } from "./types";
-import { getSquareFrom } from "./utils";
+import { Piece } from '../pieces/piece';
+import { BoardInternalState } from './board-utils';
+import {
+    getPlayingColor,
+    getPlayingDirection,
+    getSquare,
+    getSquareFrom
+} from './board-utils';
+import { coord, direction, knightDirection, pieceColor, pieceType } from './types';
 
 /**
  * Attack vectors for any given piece, by a ranged piece.

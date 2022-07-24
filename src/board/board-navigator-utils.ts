@@ -1,8 +1,16 @@
-import { BoardInternalState } from './board-state';
-import { getEnPassantCaptureSq, getEnPassantPieceSq, getPlayingDirection, getSquare, isInCheck, simulateMove } from './board-utils';
+import { BoardInternalState } from './board-utils';
+import {
+    getEnPassantCaptureSq,
+    getEnPassantPieceSq,
+    getPlayingDirection,
+    getSquare,
+    isInCheck,
+    simulateMove,
+    getFileFrom,
+    getSquareFrom,
+} from './board-utils';
 import { getCoordinates, Square } from './square';
 import { pieceType, rank, direction } from './types';
-import { getFileFrom, getSquareFrom } from './utils';
     
 const navigatorMap: Record<pieceType, (boardState: BoardInternalState, fromSquare: Square) => Square[]> = {
     pawn: (boardState: BoardInternalState, fromSquare: Square) => pawnMovement(boardState, fromSquare),

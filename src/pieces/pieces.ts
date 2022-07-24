@@ -1,5 +1,5 @@
-import { pieceColor, pieceImgKey, piecePoints, pieceType } from "../board/types";
-import { Piece } from "./piece";
+import { pieceColor, pieceImgKey, piecePoints, pieceType } from '../board/types';
+import { Piece } from './piece';
 
 const COLOR_WHITE: pieceColor = 'white';
 const COLOR_BLACK: pieceColor = 'black';

@@ -1,8 +1,9 @@
 .grid-piece {
-    /* width: 50px;
-    height: 50px; */
     position: absolute;
-    transition: top 2s, left 2s;
+}
+
+.animate {
+    transition: top 0.2s, left 0.2s;
 }
 
 .a {

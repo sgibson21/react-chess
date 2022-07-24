@@ -1,9 +1,6 @@
 import { CSSProperties } from 'react';
 import { useDragLayer, XYCoord } from 'react-dnd';
-import { Piece } from '../pieces/piece';
-import { BoardInternalState, BoardState } from './board-state';
-import { getSquare } from './board-utils';
-import { file, rank } from './types';
+import { Square } from './square';
 
 const layerStyles: CSSProperties = {
     position: 'fixed',
@@ -29,7 +26,7 @@ function getItemStyles(currentOffset: XYCoord | null) {
     }
   }
 
-export const CustomDragLayer = ({ board }: { board: BoardInternalState}) => {
+export const CustomDragLayer = ({ activeSquare }: { activeSquare: Square | null }) => {
 
     const { item, isDragging, currentOffset } = useDragLayer(monitor => ({
         item: monitor.getItem(),
@@ -37,19 +34,22 @@ export const CustomDragLayer = ({ board }: { board: BoardInternalState}) => {
         isDragging: monitor.isDragging(),
     }));
 
+    if (!activeSquare || !item) {
+        return null;
+    }
+
+    if (activeSquare.file !== item.file || activeSquare.rank !== item.rank) {
+        return null;
+    }
+
     if (!isDragging) {
         return null;
     }
 
-    // console.log('custom drag layer item:', item)
-    // TODO: make sure dragable/movable piece is in scop of useDrop
-
-    const piece = getSquare(item.file, item.rank, board).piece;
-
     return (
         <div style={layerStyles}>
             <div style={getItemStyles(currentOffset)}>
-                <div className={`piece ${piece?.imgClass}`}></div>
+                <div className={`piece ${activeSquare.piece?.imgClass}`}></div>
             </div>
         </div>
     );

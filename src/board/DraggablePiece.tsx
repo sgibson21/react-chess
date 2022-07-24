@@ -8,30 +8,23 @@ interface DraggablePieceProps {
     file: file;
     rank: rank;
     onDragStart: (file: file, rank: rank) => void;
+    isActive: boolean;
 }
 
-export const DraggablePiece = ({ piece, file, rank, onDragStart }: DraggablePieceProps) => {
+export const DraggablePiece = ({ piece, file, rank, onDragStart, isActive }: DraggablePieceProps) => {
     const [{ isDragging }, drag, preview] = useDrag(() => {
         return {
-            type: 'piece', // TODO: does this need to be more specific?
-            // item: () => {
-            //     // This is the function run at the begining of a drag
-            //     if (board.isOwnPiece(file, rank)) {
-            //         setBoard(board.setActiveSquare(file, rank));
-            //     }
-            //     // always returning the piece allows you to drag any piece, but only your own pieces can be set as the active square
-            //     return { file, rank };
-            // },
+            type: 'piece',
             item: () => {
-                console.log('DraggablePiece drag start')
                 // This is the function run at the begining of a drag
                 onDragStart(file, rank);
-                // always returning the piece allows you to drag any piece, but only your own pieces can be set as the active square
+                // always returning the piece allows you to drag any piece
+                // but only your own pieces can be set as the active square
                 return { file, rank };
             },
-            collect: monitor => ({ isDragging: !!monitor.isDragging() })
+            collect: monitor => ({ isDragging: isActive && !!monitor.isDragging()})
         };
-    }, []);
+    }, [file, rank, onDragStart, isActive]); // remember that useDrag depends on the dragStart callback
 
     return (
         <>
