@@ -1,5 +1,5 @@
 import { Piece } from '../pieces/piece';
-import { BISHOP, BLACK, KING, KNIGHT, PAWN, QUEEN, ROOK, WHITE } from '../pieces/pieces';
+import { BISHOP, COLOR_BLACK, COLOR_WHITE, getPiece, KING, KNIGHT, PAWN, QUEEN, ROOK } from '../pieces/pieces';
 import { LocatedPiece } from './Board';
 import { getPieceMovement } from './board-navigator-utils';
 import { isAttacked } from './board-scout-utils';
@@ -189,7 +189,7 @@ export const forward: (state: BoardInternalState) => BoardInternalState = (state
             switchPlayer(state);
         }
 
-        state = clearActiveSq({...state});
+        state = clearActiveSq(state);
         state = clearAvailableSquares(state);
     }
 
@@ -240,21 +240,28 @@ export const loadPositionFromFen: (fen: string, state: BoardInternalState) => Bo
 
     let file: file = 'a', rank: rank = 8;
 
+    const unidentifiedPieces = [];
+
     for (const symbol of fen) {
         if (symbol === '/') {
             file = 'a';
             rank = getRankFrom(rank, -1);
         } else {
             if (isNaN(Number(symbol))) {
-                const color = symbol === symbol.toUpperCase() ? WHITE : BLACK;
                 const type = symbolMap[symbol.toLowerCase() as fenStringType];
-                addPiece(new color[type]() as Piece, file, rank, state);
+                unidentifiedPieces.push({
+                    file,
+                    rank,
+                    piece: getPiece(symbol === symbol.toUpperCase() ? COLOR_WHITE : COLOR_BLACK, type)
+                });
                 file = getFileFrom(file, 1);
             } else {
                 file = getFileFrom(file, Number(symbol));
             }
         }
     }
+
+    unidentifiedPieces.forEach((up, index) => addPiece({...up.piece, id: index.toString()}, up.file, up.rank, state));
 
     return state;
 }
@@ -325,7 +332,7 @@ const setPieceOn: (piece: Piece | undefined, square: Square) => void = (piece: P
  */
 const makeHistoryMoveBackwards: ({from, to, capture, reverse}: move, state: BoardInternalState) => void = ({from, to, capture, reverse}: move, state: BoardInternalState) => {
     const fromSq = getSquare(to.file, to.rank, state);
-    const pieceToMove = liftPiece(fromSq);
+    const pieceToMove = liftSquarePiece(fromSq, state);
     const toSq = getSquare(from.file, from.rank, state);
 
     setPieceOn(pieceToMove, toSq);
@@ -353,13 +360,13 @@ const makeHistoryMovesBackwards: (moves: move[], state: BoardInternalState) => v
 const makeHistoryMoveForwards: ({from, to, capture}: move, state: BoardInternalState) => void = ({from, to, capture}: move, state: BoardInternalState) => {
 
     const fromSq = getSquare(from.file, from.rank, state);
-    const pieceToMove = liftPiece(fromSq);
+    const pieceToMove = liftSquarePiece(fromSq, state);
     const toSq = getSquare(to.file, to.rank, state);
 
     // capture the piece before you set the taking piece down
     if (capture) {
         const capturedSq = getSquare(capture.coord.file, capture.coord.rank, state);
-        liftPiece(capturedSq);
+        liftSquarePiece(capturedSq, state);
 
         // TODO: put this into players stash of taken pieces
     }
@@ -383,7 +390,7 @@ const makeUnvalidatedMove: (from: coord, to: coord, state: BoardInternalState) =
     let capture: capture | undefined;
 
     const fromSq = getSquare(from.file, from.rank, state);
-    const pieceToMove = liftPiece(fromSq);
+    const pieceToMove = liftSquarePiece(fromSq, state);
 
     // set the piece on the sqare that the piece came from
     const toSq = getSquare(to.file, to.rank, state);
@@ -438,10 +445,10 @@ const compareSquareCoords = (sq1: coord, sq2: coord) => {
 /**
  * Captures piece on given square
  */
-const capturePiece: (square: Square) => capture | undefined = (square: Square) => {
+const capturePiece: (square: Square, state: BoardInternalState) => capture | undefined = (square: Square, state: BoardInternalState) => {
 
     // lift piece to be taken
-    const capturedPiece = liftPiece(square);
+    const capturedPiece = liftSquarePiece(square, state);
 
     // add captured piece to current players stash
     // TODO
@@ -462,7 +469,7 @@ const capturePieceByEnPassant: (state: BoardInternalState) => capture | undefine
 
         // lift piece to be taken
         const sq = getSquare(state.enPassantState.pieceSquare.file, state.enPassantState.pieceSquare.rank, state);
-        const capturedPice = liftPiece(sq);
+        const capturedPice = liftSquarePiece(sq, state);
 
         if (capturedPice) {
 
@@ -492,8 +499,8 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
 
     // capturing a piece
     if (fromSq && fromSq.piece && toSq && toSq.piece && !compareSquarePieceColor(fromSq, toSq)) {
-        const capture = capturePiece(toSq); // capture the piece before you set down the taking piece
-        pieceToMove = liftPiece(fromSq);
+        const capture = capturePiece(toSq, state); // capture the piece before you set down the taking piece
+        pieceToMove = liftSquarePiece(fromSq, state);
         setPieceOn(pieceToMove, toSq);
 
         moves.push({
@@ -509,7 +516,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
         !compareSquarePieceColor(fromSq, getSquare(state.enPassantState.pieceSquare.file, state.enPassantState.pieceSquare.rank, state))
     ) {
         const capture = capturePieceByEnPassant(state); // capture the piece before you set down the taking piece
-        pieceToMove = liftPiece(fromSq);
+        pieceToMove = liftSquarePiece(fromSq, state);
         setPieceOn(pieceToMove, toSq);
 
         moves.push({
@@ -535,7 +542,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
                 // short castling
                 const rookSq = getSquare('h', fromSq.rank, state);
                 if (rookSq.piece) {
-                    const rook = liftPiece(rookSq);
+                    const rook = liftSquarePiece(rookSq, state);
                     setPieceOn(rook, getSquare('f', fromSq.rank, state));
 
                     moves.push({
@@ -548,7 +555,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
                 // long castling
                 const rookSq = getSquare('a', fromSq.rank, state);
                 if (rookSq.piece) {
-                    const rook = liftPiece(rookSq);
+                    const rook = liftSquarePiece(rookSq, state);
                     setPieceOn(rook, getSquare('d', fromSq.rank, state));
 
                     moves.push({
@@ -561,7 +568,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
         }
 
         // move piece (including castling king)
-        pieceToMove = liftPiece(fromSq);
+        pieceToMove = liftSquarePiece(fromSq, state);
         setPieceOn(pieceToMove, toSq);
 
     }
@@ -579,6 +586,10 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
     }
 
     return moves;
+}
+
+const liftSquarePiece: (coord: coord, board: BoardInternalState) => Piece | undefined = ({file, rank}: coord, board: BoardInternalState) => {
+    return liftPiece(getSquare(file, rank, board));
 }
 
 const initSquares: () => boardState = () => {

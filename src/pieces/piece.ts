@@ -1,14 +1,15 @@
 import { pieceColor, pieceImgKey, piecePoints, pieceType } from "../board/types";
 
-export class Piece {
+// An UnidentifiedPiece is a piece with no ID
+// with the intent for an ID to be given once all pieces are created
+export type UnidentifiedPiece = {
+    color: pieceColor;
+    type: pieceType;
+    imgClass: pieceImgKey;
+    points: piecePoints;
+    hasMoved: boolean;
+};
 
-    public hasMoved = false;
-
-    constructor(
-        public color: pieceColor,
-        public type: pieceType,
-        public imgClass: pieceImgKey,
-        public points: piecePoints,
-        public id: string
-    ) { }
+export interface Piece extends UnidentifiedPiece {
+    id: string;
 }
