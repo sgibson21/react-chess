@@ -1,47 +1,21 @@
 import { useEffect, useState } from 'react';
-import { BoardInternalState, files, isValidMove, promotePiece, readyForActiveSquareSelection, switchPlayer } from './board-utils';
 import './Board.css';
-import { coord, file, pieceType, rank } from './types';
+import { file, rank } from './types';
 import { SquareEl } from './SquareEl';
 import { CustomDragLayer } from './CustomDragLayer';
-import { Piece } from '../pieces/piece';
 import { PieceGrid } from './PieceGrid';
 import { useDispatch } from 'react-redux';
 import { setBoard } from '../app/pieceLocationSlice';
 import {
-    back,
-    clearActiveSq,
-    forward,
-    getActiveSquare,
-    getLocatedPieces,
-    getSquare,
-    getSquareByPieceID,
-    hasActiveSq,
-    isActiveSq,
-    isAvailableSquare,
-    isOwnPiece,
-    movePieceTo,
-    setActiveSquare
+    back, forward, clearActiveSq, getActiveSquare, getLocatedPieces, getSquare,
+    getSquareByPieceID, hasActiveSq, isActiveSq, isAvailableSquare, isOwnPiece,
+    movePieceTo, setActiveSquare, BoardInternalState, files, ranks, isValidMove,
+    promotePiece, readyForActiveSquareSelection, switchPlayer, LocatedPiece
 } from './board-utils';
 import { Square } from './square';
 import { Socket } from 'socket.io-client';
-
-const board: file[][] = [
-    files,
-    files,
-    files,
-    files,
-    files,
-    files,
-    files,
-    files,
-];
-
-export type LocatedPiece = {
-    file: file;
-    rank: rank;
-    piece: Piece;
-};
+import useHistory from './hooks/useHistory';
+import { OnPromotionCallback } from './MovablePiece';
 
 export const Board = ({initialState, socket}: {initialState: BoardInternalState, socket: Socket}) => {
 
@@ -58,28 +32,26 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
         dispatch(setBoard(pieces.map(mapLocatedPiecesToLocatedIDs)));
     }, [pieces]);
 
-    // TODO: make custom hook
-    useEffect(() => {
-        document.addEventListener('keydown', historyListener);
+    useHistory(boardState, () => {
+        setAnimate(true);
+        makeMove(back(boardState));
+    }, () => {
+        setAnimate(true);
+        makeMove(forward(boardState));
+    });
 
-        // clean up
-        return () => document.removeEventListener('keydown', historyListener);
-    }, [boardState, setBoardState]);
-
-    // TODO: make custom hook
     useEffect(() => {
         socket.on('state-update', res => {
             console.log('state update from web socket:', res);
             setBoardState(res);
         });
 
-        return () => {
-            socket.off('state-update');
-        }
-    }, [setBoardState, boardState]);
+    }, []);
 
-    const useWebSockets: boolean = false;
-
+    // ======================================
+    //              Web Sockets
+    // ======================================
+    const useWebSockets: boolean = true;
     const makeMove = (state: BoardInternalState) => {
         if (useWebSockets) {
             socket.emit('state-change', state, (res: {status: number}) => {
@@ -89,18 +61,6 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
             });
         } else {
             setBoardState(state);
-        }
-    };
-
-    const historyListener = (e: KeyboardEvent) => {
-        if (e.key === 'ArrowRight') {
-            setAnimate(true);
-            const state = forward(boardState);
-            makeMove(state);
-        } else if (e.key === 'ArrowLeft') {
-            setAnimate(true);
-            const state = back(boardState);
-            makeMove(state);
         }
     };
 
@@ -167,11 +127,13 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
         }
     };
 
-    const onPromotion = (selection: pieceType | 'cancel', coord: coord | null) => {
+    const onPromotion: OnPromotionCallback = (selection, coord) => {
         if (selection === 'cancel') {
-            // go back (which switches player), then switch back to the same player, as they are canceling thier move
             makeMove(
                 switchPlayer(
+                    // go back (which switches player),
+                    // then switch back to the same player
+                    // as they are canceling thier move
                     back(boardState)
                 )
             );
@@ -187,7 +149,7 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
             <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
             <div className="board">
                 {
-                    board.map((r, i) => {
+                    ranks.map((r, i) => {
                         const rank: rank = 8 - i as rank;
                         return (
                             <div key={rank} className="rank">

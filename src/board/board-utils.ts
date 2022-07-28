@@ -1,6 +1,5 @@
 import { Piece, UnidentifiedPiece } from '../pieces/piece';
 import { BISHOP, COLOR_BLACK, COLOR_WHITE, getPiece as createPiece, KING, KNIGHT, PAWN, QUEEN, ROOK } from '../pieces/pieces';
-import { LocatedPiece } from './Board';
 import { getPieceMovement } from './board-navigator-utils';
 import { isAttacked } from './board-scout-utils';
 import { Square, getCoordinates, liftPiece, setPiece } from './square';
@@ -19,6 +18,12 @@ export type BoardInternalState = {
     playersTurn: pieceColor;
     enPassantState: enPassantState | undefined;
     promotionState: coord | undefined;
+};
+
+export type LocatedPiece = {
+    file: file;
+    rank: rank;
+    piece: Piece;
 };
 
 export type boardState = {

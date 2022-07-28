@@ -1,6 +1,6 @@
-import { LocatedPiece } from './Board';
-import { coord, file, pieceType, rank } from './types';
-import { MovablePiece } from './MovablePiece';
+import { LocatedPiece } from './board-utils';
+import { file, rank } from './types';
+import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { BoardInternalState } from './board-utils';
 
 interface PieceGridProps {
@@ -10,7 +10,7 @@ interface PieceGridProps {
     onCapture: (pieceID: string) => void;
     animate: boolean;
     boardState: BoardInternalState;
-    onPromotion: (selection: pieceType | 'cancel', coord: coord | null) => void;
+    onPromotion: OnPromotionCallback;
 }
 
 export const PieceGrid = ({ locations, onClick, onDragStart, onCapture, animate, boardState, onPromotion }: PieceGridProps) => {
