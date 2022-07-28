@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BoardInternalState, files } from './board-utils';
+import { BoardInternalState, files, isValidMove, promotePiece, readyForActiveSquareSelection, switchPlayer } from './board-utils';
 import './Board.css';
-import './PieceGrid.css';
-import { file, rank } from './types';
+import { coord, file, pieceType, rank } from './types';
 import { SquareEl } from './SquareEl';
 import { CustomDragLayer } from './CustomDragLayer';
 import { Piece } from '../pieces/piece';
@@ -59,11 +58,35 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
         dispatch(setBoard(pieces.map(mapLocatedPiecesToLocatedIDs)));
     }, [pieces]);
 
-    const useWebSockets: boolean = true;
+    // TODO: make custom hook
+    useEffect(() => {
+        document.addEventListener('keydown', historyListener);
+
+        // clean up
+        return () => document.removeEventListener('keydown', historyListener);
+    }, [boardState, setBoardState]);
+
+    // TODO: make custom hook
+    useEffect(() => {
+        socket.on('state-update', res => {
+            console.log('state update from web socket:', res);
+            setBoardState(res);
+        });
+
+        return () => {
+            socket.off('state-update');
+        }
+    }, [setBoardState, boardState]);
+
+    const useWebSockets: boolean = false;
 
     const makeMove = (state: BoardInternalState) => {
         if (useWebSockets) {
-            socket.emit('state-change', state);
+            socket.emit('state-change', state, (res: {status: number}) => {
+                if (res.status === 200) {
+                    setBoardState(state);
+                }
+            });
         } else {
             setBoardState(state);
         }
@@ -81,78 +104,83 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
         }
     };
 
-    useEffect(() => {
-        document.addEventListener('keydown', historyListener);
-
-        // clean up
-        return () => document.removeEventListener('keydown', historyListener);
-    }, [boardState, setBoardState]);
-
-    useEffect(() => {
-        socket.on('state-update', res => {
-            console.log('state update from web socket:', res);
-            setBoardState(res);
-        });
-
-        return () => {
-            socket.off('state-update');
-        }
-    }, [setBoardState, boardState]);
-
     const squareClicked = (file: file, rank: rank) => {
         setAnimate(true);
         // move the piece if there's an active piece and they havn't clicked their own piece
-        if (hasActiveSq(boardState) && !isOwnPiece(file, rank, boardState)) {
-            const state = movePieceTo({file, rank}, boardState);
-            makeMove(state);
+        if (isValidMove(file, rank, boardState)) {
+            makeMove(
+                movePieceTo({file, rank}, boardState)
+            );
         }
     };
     
     const pieceClicked = (file: file, rank: rank) => {
         // set active piece if they've clicked their own piece and it's their turn
-        if (isOwnPiece(file, rank, boardState) && !isActiveSq(file, rank, boardState)) {
-            const state = setActiveSquare(file, rank, boardState);
-            makeMove(state);
+        if (readyForActiveSquareSelection(file, rank, boardState)) {
+            makeMove(
+                setActiveSquare(file, rank, boardState)
+            );
         }
         // clear the active square if it's active and they've clicked it again
         else if (hasActiveSq(boardState) && isActiveSq(file, rank, boardState)) {
-            const state = clearActiveSq(boardState);
-            makeMove(state);
+            makeMove(
+                clearActiveSq(boardState)
+            );
         }
         // move the piece if there's an active piece and they havn't clicked their own piece
-        else if (hasActiveSq(boardState) && !isOwnPiece(file, rank, boardState)) {
+        else if (isValidMove(file, rank, boardState)) {
             setAnimate(true);
-            const state = movePieceTo({file, rank}, boardState);
-            makeMove(state);
+            makeMove(
+                movePieceTo({file, rank}, boardState)
+            );
         }
     };
     
     const dragStart = (file: file, rank: rank) => {
         // set active piece if they've clicked their own piece and it's their turn
-        if (isOwnPiece(file, rank, boardState) && !isActiveSq(file, rank, boardState)) {
-            const state = setActiveSquare(file, rank, boardState);
-            makeMove(state);
+        if (readyForActiveSquareSelection(file, rank, boardState)) {
+            makeMove(
+                setActiveSquare(file, rank, boardState)
+            );
         }
         else if (!isOwnPiece(file, rank, boardState)) {
-            const state = clearActiveSq(boardState);
-            makeMove(state);
+            makeMove(
+                clearActiveSq(boardState)
+            );
         }
     };
     
     const onDrop = (file: file, rank: rank) => {
-        const state = movePieceTo({file, rank}, boardState);
-        makeMove(state);
         setAnimate(false);
+        makeMove(
+            movePieceTo({file, rank}, boardState)
+        );
     };
     
     const onCapture = (pieceID: string) => {
         const toSquare: Square | undefined = getSquareByPieceID(pieceID, boardState);
         if (toSquare) {
-            const state = movePieceTo({file: toSquare.file, rank: toSquare.rank}, boardState);
-            makeMove(state);
             setAnimate(false);
+            makeMove(
+                movePieceTo({file: toSquare.file, rank: toSquare.rank}, boardState)
+            );
         }
-    }
+    };
+
+    const onPromotion = (selection: pieceType | 'cancel', coord: coord | null) => {
+        if (selection === 'cancel') {
+            // go back (which switches player), then switch back to the same player, as they are canceling thier move
+            makeMove(
+                switchPlayer(
+                    back(boardState)
+                )
+            );
+        } else if (coord) {
+            makeMove(
+                promotePiece(coord, selection, boardState)
+            );
+        }
+    };
 
     return (
         <>
@@ -185,6 +213,7 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
                     onCapture={pieceID => onCapture(pieceID)}
                     animate={animate}
                     boardState={boardState}
+                    onPromotion={onPromotion}
                 ></PieceGrid>
 
             </div>

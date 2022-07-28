@@ -10,15 +10,6 @@
     top: 0;
 }
 
-.piece-grid-square {
-    width: 100px;
-    height: 100px;
-    display: table-cell;
-    background-color: pink;
-    opacity: 0.5;
-    position: relative;
-}
-
 .square {
     width: 100px;
     height: 100px;
@@ -26,12 +17,27 @@
     position: relative;
 }
 
+/* hover highlighting */
 .square::after {
     display: block;
     content: '';
     width: 90px;
     height: 90px;
     margin: 5px;
+}
+
+/* corner rounding */
+.rank:first-child .square:first-child {
+    border-top-left-radius: 3px;
+}
+.rank:first-child .square:last-child {
+    border-top-right-radius: 3px;
+}
+.rank:nth-child(8) .square:first-child {
+    border-bottom-left-radius: 3px;
+}
+.rank:nth-child(8) .square:last-child {
+    border-bottom-right-radius: 3px;
 }
 
 .square.light, .square.light::after {
@@ -42,7 +48,7 @@
     background-color: #769656;
 }
 
-/* The square itself is used as the boarder to prevent the pieces from being pushed about using actial boarders */
+/* The square itself is used as the boarder to prevent the pieces from being pushed about using actual boarders */
 .square.is-over, .square.is-over {
     background-color:  #d9d9d9;
 }

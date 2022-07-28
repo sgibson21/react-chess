@@ -18,7 +18,9 @@ function App() {
     console.log('websocket connection_status:', res);
   });
 
-  const state: BoardInternalState = loadPositionFromFen(START_FEN, initBoard());
+  // const state: BoardInternalState = loadPositionFromFen(START_FEN, initBoard());
+  const promoteFEN = 'rnbqkbnr/pPppp1pp/8/8/8/8/PP1PPPpP/RNBQKBNR';
+  const state: BoardInternalState = loadPositionFromFen(promoteFEN, initBoard());
 
   return (
     <Provider store={store}>

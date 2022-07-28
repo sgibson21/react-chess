@@ -1,6 +1,5 @@
 import { LocatedPiece } from './Board';
-import { file, rank } from './types';
-import './PieceGrid.css';
+import { coord, file, pieceType, rank } from './types';
 import { MovablePiece } from './MovablePiece';
 import { BoardInternalState } from './board-utils';
 
@@ -11,9 +10,10 @@ interface PieceGridProps {
     onCapture: (pieceID: string) => void;
     animate: boolean;
     boardState: BoardInternalState;
+    onPromotion: (selection: pieceType | 'cancel', coord: coord | null) => void;
 }
 
-export const PieceGrid = ({ locations, onClick, onDragStart, onCapture, animate, boardState }: PieceGridProps) => {
+export const PieceGrid = ({ locations, onClick, onDragStart, onCapture, animate, boardState, onPromotion }: PieceGridProps) => {
 
     return (
         <div className='piece-grid'>
@@ -28,6 +28,7 @@ export const PieceGrid = ({ locations, onClick, onDragStart, onCapture, animate,
                             onCapture={onCapture}
                             animate={animate}
                             boardState={boardState}
+                            onPromotion={onPromotion}
                         ></MovablePiece>
                     )
                 })

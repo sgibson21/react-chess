@@ -1,5 +1,5 @@
-import { Piece } from '../pieces/piece';
-import { BISHOP, COLOR_BLACK, COLOR_WHITE, getPiece, KING, KNIGHT, PAWN, QUEEN, ROOK } from '../pieces/pieces';
+import { Piece, UnidentifiedPiece } from '../pieces/piece';
+import { BISHOP, COLOR_BLACK, COLOR_WHITE, getPiece as createPiece, KING, KNIGHT, PAWN, QUEEN, ROOK } from '../pieces/pieces';
 import { LocatedPiece } from './Board';
 import { getPieceMovement } from './board-navigator-utils';
 import { isAttacked } from './board-scout-utils';
@@ -18,6 +18,7 @@ export type BoardInternalState = {
     availableSquares: Square[];
     playersTurn: pieceColor;
     enPassantState: enPassantState | undefined;
+    promotionState: coord | undefined;
 };
 
 export type boardState = {
@@ -35,6 +36,13 @@ type move = {
     from: coord;
     to: coord;
     capture?: capture;
+
+    /**
+     * describes if this move is the promotion of a pawn (before we know what the player selected)
+     * or the piece type the player chose to promote to
+     */
+    promotion?: boolean | pieceType;
+
     /**
      * optional callback used to reverse piece state: ie set hasMoved back to false
      */
@@ -125,11 +133,11 @@ export const getEnPassantPieceSq: (state: BoardInternalState) => coord | false =
 export const back: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
     state = {...state};
     if (state.undoHistory.length > 0) {
-        clearActiveSq(state);
+        state = clearActiveSq(state);
         const movesToUndo = state.undoHistory.splice(-1, 1)[0];
         makeHistoryMovesBackwards(movesToUndo, state);
         state.redoHistory.push(movesToUndo);
-        switchPlayer(state);
+        state = switchPlayer(state);
     }
     return state;
 }
@@ -137,11 +145,11 @@ export const back: (state: BoardInternalState) => BoardInternalState = (state: B
 export const forward: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
     state = {...state};
     if (state.redoHistory.length > 0) {
-        clearActiveSq(state);
+        state = clearActiveSq(state);
         const movesToRedo = state.redoHistory.splice(-1, 1)[0];
         makeHistoryMovesForwards(movesToRedo, state);
         state.undoHistory.push(movesToRedo);
-        switchPlayer(state);
+        state = switchPlayer(state);
     }
     return state;
 }
@@ -175,7 +183,8 @@ export const forward: (state: BoardInternalState) => BoardInternalState = (state
  */
  export const movePieceTo: (to: coord, state: BoardInternalState) => BoardInternalState = (to: coord, state: BoardInternalState) => {
     state = {...state};
-    if (state.activeSq && !isActiveSq(to.file, to.rank, state) && isAvailableSquare(to.file, to.rank, state)) {
+
+    if (isValidMove(to.file, to.rank, state)) {
 
         // move piece to new square
         const moves = movePiece(to, state);
@@ -185,13 +194,25 @@ export const forward: (state: BoardInternalState) => BoardInternalState = (state
             state.undoHistory.push(moves);
             state.redoHistory = [];
 
-            // only switch player if a piece was moved
-            switchPlayer(state);
+            // only switch player if a piece was moved and we're not waiting on selecting a promotion
+            if (!moves.find(m => m.promotion)) {
+                state = switchPlayer(state);
+            }
         }
 
         state = clearActiveSq(state);
         state = clearAvailableSquares(state);
     }
+
+    return state;
+}
+
+export const promotePiece = ({ file, rank }: coord, type: pieceType, state: BoardInternalState) => {
+    state = {...state};
+
+    changePiece({file, rank}, type, state);
+    state = switchPlayer(state); // TODO: you need to lock normal player moves while a piece needs to be selected
+    state.promotionState = undefined;
 
     return state;
 }
@@ -221,7 +242,8 @@ export const initBoard: () => BoardInternalState = () => {
         enPassantState: undefined,
         playersTurn: 'white',
         redoHistory: [],
-        undoHistory: []
+        undoHistory: [],
+        promotionState: undefined
     };
 }
 
@@ -252,7 +274,7 @@ export const loadPositionFromFen: (fen: string, state: BoardInternalState) => Bo
                 unidentifiedPieces.push({
                     file,
                     rank,
-                    piece: getPiece(symbol === symbol.toUpperCase() ? COLOR_WHITE : COLOR_BLACK, type)
+                    piece: createPiece(symbol === symbol.toUpperCase() ? COLOR_WHITE : COLOR_BLACK, type)
                 });
                 file = getFileFrom(file, 1);
             } else {
@@ -286,6 +308,31 @@ export const getSquareFrom = (fromFile: file, fileCount: number, fromRank: rank,
 export const getFileFrom = (file: file, count: number): file => {
     const fileIndex = files.indexOf(file);
     return files[fileIndex + count];
+}
+
+export const switchPlayer: (state: BoardInternalState) => BoardInternalState = (state: BoardInternalState) => {
+    state = {...state};
+    state.playersTurn = state.playersTurn === 'white' ? 'black' : 'white';
+    return state;
+}
+
+/**
+ * describes if the board is in a state where it is ready for the piece on the active square to be moved
+ */
+export const isValidMove = (file: file, rank: rank, state: BoardInternalState) => {
+    return !!state.activeSq &&
+        !isActiveSq(file, rank, state) &&
+        isAvailableSquare(file, rank, state) &&
+        !isOwnPiece(file, rank, state);
+}
+
+/**
+ * describes if the board is in a state where a player can select an active square
+ */
+export const readyForActiveSquareSelection = (file: file, rank: rank, state: BoardInternalState) => {
+    return isOwnPiece(file, rank, state) &&
+        !isActiveSq(file, rank, state) &&
+        !state.promotionState;
 }
 
 /**
@@ -328,9 +375,25 @@ const setPieceOn: (piece: Piece | undefined, square: Square) => void = (piece: P
 }
 
 /**
+ * Utility for changing a piece eg: when promoting a pawn
+ */
+const changePiece: (coord: coord, newType: pieceType, state: BoardInternalState) => Piece | undefined = ({file, rank}: coord, newType: pieceType, state: BoardInternalState) => {
+    const oldPiece = liftSquarePiece({file, rank}, state);
+    let newPiece: Piece | undefined;
+    if (oldPiece) {
+        const promotedPiece: UnidentifiedPiece = createPiece(oldPiece?.color, newType);
+        newPiece = {...promotedPiece, id: oldPiece.id};
+        addPiece(newPiece, file, rank, state);
+    }
+    return newPiece;
+}
+
+/**
  * moves a piece to -> from without checking if it is legal etc
  */
-const makeHistoryMoveBackwards: ({from, to, capture, reverse}: move, state: BoardInternalState) => void = ({from, to, capture, reverse}: move, state: BoardInternalState) => {
+const makeHistoryMoveBackwards: (move: move, state: BoardInternalState) => void = (move: move, state: BoardInternalState) => {
+    // destructure here because we may need to update the pieceType on move.promotion
+    const {from, to, capture, promotion, reverse} = move;
     const fromSq = getSquare(to.file, to.rank, state);
     const pieceToMove = liftSquarePiece(fromSq, state);
     const toSq = getSquare(from.file, from.rank, state);
@@ -342,9 +405,16 @@ const makeHistoryMoveBackwards: ({from, to, capture, reverse}: move, state: Boar
         setPieceOn(capture.piece, getSquare(capture.coord.file, capture.coord.rank, state));
     }
 
+    if (promotion) {
+        // store the state of what the promotion was for redo moves
+        move.promotion = pieceToMove?.type;
+        // when going back, we always go back to a pawn
+        changePiece({file: toSq.file, rank: toSq.rank}, 'pawn', state);
+    }
+
     // run the reverse callback if there is one
     if (reverse) {
-        reverse();
+        reverse(); // TODO: cant store a function in the move
     }
 }
 
@@ -357,10 +427,10 @@ const makeHistoryMovesBackwards: (moves: move[], state: BoardInternalState) => v
  * @param capture - a capture to make, if one was made on a sqaure other than the 'to' sqaure
  *      (usually for en passant captures when going forwards in history)
  */
-const makeHistoryMoveForwards: ({from, to, capture}: move, state: BoardInternalState) => void = ({from, to, capture}: move, state: BoardInternalState) => {
+const makeHistoryMoveForwards: (move: move, state: BoardInternalState) => void = ({from, to, capture, promotion}: move, state: BoardInternalState) => {
 
     const fromSq = getSquare(from.file, from.rank, state);
-    const pieceToMove = liftSquarePiece(fromSq, state);
+    let pieceToMove = liftSquarePiece(fromSq, state);
     const toSq = getSquare(to.file, to.rank, state);
 
     // capture the piece before you set the taking piece down
@@ -370,16 +440,16 @@ const makeHistoryMoveForwards: ({from, to, capture}: move, state: BoardInternalS
 
         // TODO: put this into players stash of taken pieces
     }
-
+    
     setPieceOn(pieceToMove, toSq);
+
+    if (promotion) {
+        pieceToMove = changePiece({file: toSq.file, rank: toSq.rank}, promotion as pieceType, state);
+    }
 }
 
 const makeHistoryMovesForwards: (moves: move[], state: BoardInternalState) => void = (moves: move[], state: BoardInternalState) => {
     moves.forEach(move => makeHistoryMoveForwards(move, state));
-}
-
-const switchPlayer: (state: BoardInternalState) => void = (state: BoardInternalState) => {
-    state.playersTurn = state.playersTurn === 'white' ? 'black' : 'white';
 }
 
 /**
@@ -496,6 +566,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
     const moves: move[] = [];
     const fromSq = state.activeSq;
     const toSq = state.state[to.file][to.rank];
+    const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
 
     // capturing a piece
     if (fromSq && fromSq.piece && toSq && toSq.piece && !compareSquarePieceColor(fromSq, toSq)) {
@@ -506,7 +577,8 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
         moves.push({
             from: getCoordinates(fromSq),
             to: getCoordinates(toSq),
-            capture
+            capture,
+            promotion
         });
     }
     // capturing by en passant
@@ -531,7 +603,8 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
         moves.push({
             from: getCoordinates(fromSq),
             to: getCoordinates(toSq),
-            capture: undefined
+            capture: undefined,
+            promotion
         });
 
         // castling - if moving a king more than 1 space
@@ -547,8 +620,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
 
                     moves.push({
                         from: {file: 'h', rank: fromSq.rank},
-                        to: {file: 'f', rank: fromSq.rank},
-                        capture: undefined
+                        to: {file: 'f', rank: fromSq.rank}
                     });
                 }
             } else {
@@ -560,8 +632,7 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
 
                     moves.push({
                         from: {file: 'a', rank: fromSq.rank},
-                        to: {file: 'd', rank: fromSq.rank},
-                        capture: undefined
+                        to: {file: 'd', rank: fromSq.rank}
                     });
                 }
             }
@@ -573,7 +644,10 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
 
     }
 
+    // If a move was made
     if (fromSq && pieceToMove && moves.length > 0) {
+        // TODO: need a new way to reverse the hasMoved flag.
+        //       maybe store in a new property of the move state: {firstMove: boolean}
         if (!pieceToMove.hasMoved) {
             // set the has moved flag on the piece
             pieceToMove.hasMoved = true;
@@ -583,6 +657,9 @@ const movePiece: (to: coord, state: BoardInternalState) => move[] = (to: coord, 
 
         // clear and set new en passant state
         state.enPassantState = getEnPassantState(fromSq, toSq, pieceToMove, state);
+
+        // clear and set new promotion state
+        state.promotionState = promotion ? getCoordinates(toSq) : undefined;
     }
 
     return moves;

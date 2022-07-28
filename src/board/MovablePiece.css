@@ -1,0 +1,110 @@
+.grid-piece {
+    position: absolute;
+}
+
+.animate {
+    transition: top 0.2s, left 0.2s;
+}
+
+.promotion-select {
+    width: 100px;
+    background-color: white;
+    border-radius: 3px;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.45);
+    animation: fadein 0.2s;
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.promotion-select.ps-black {
+    position: absolute;
+    top: -350px;
+    z-index: 1000;
+}
+
+.promotion-select.ps-black .piece {
+    position: relative;
+}
+
+.promotion-select .piece {
+    position: inherit;
+    cursor: pointer;
+}
+
+.promotion-select .close {
+    height: 50px;
+    background-color: #f1f1f1;
+    cursor: pointer;
+}
+
+.close-icon {
+    margin: 9px 34px;
+    color: #8c8a88;
+}
+
+.a {
+    left: 0;
+}
+
+.b {
+    left: 100px;
+}
+
+.c {
+    left: 200px;
+}
+
+.d {
+    left: 300px;
+}
+
+.e {
+    left: 400px;
+}
+
+.f {
+    left: 500px;
+}
+
+.g {
+    left: 600px;
+}
+
+.h {
+    left: 700px;
+}
+
+._8 {
+    top: 0;
+}
+
+._7 {
+    top: 100px;
+}
+
+._6 {
+    top: 200px;
+}
+
+._5 {
+    top: 300px;
+}
+
+._4 {
+    top: 400px;
+}
+
+._3 {
+    top: 500px;
+}
+
+._2 {
+    top: 600px;
+}
+
+._1 {
+    top: 700px;
+}

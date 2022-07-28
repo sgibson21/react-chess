@@ -23,7 +23,7 @@ export const SquareEl = ({ square, isActive, isAvailable, onClick, onDrop }: Squ
     return (
         <div
             ref={drop}
-            className={`square ${sqColor} ${isActive && 'active'} ${isOver && 'is-over'}`}
+            className={`square ${sqColor} ${isActive ? 'active' : ''} ${isOver ? 'is-over' : ''}`}
             onClick={() => onClick()}
         >
             {
