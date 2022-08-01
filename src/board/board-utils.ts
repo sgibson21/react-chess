@@ -6,7 +6,9 @@ import { Square, getCoordinates, liftPiece, setPiece } from './square';
 import { coord, enPassantState, fenStringType, file, pieceColor, pieceType, rank } from './types';
 
 export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+export const filesReversed: file[] = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
+export const ranksReversed: rank[] = [8, 7, 6, 5, 4, 3, 2, 1];
 export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
 
 export type BoardInternalState = {
@@ -338,6 +340,22 @@ export const readyForActiveSquareSelection = (file: file, rank: rank, state: Boa
     return isOwnPiece(file, rank, state) &&
         !isActiveSq(file, rank, state) &&
         !state.promotionState;
+}
+
+/**
+ * gets the files and ranks to render the board, based on who's turn it is and if the board should be flipped for black
+ * 
+ * with a board perspective of playing with white's pieces:
+ *     files are rendered: a -> h (left to right)
+ *     ranks are rendered: 8 -> 1 (top to bottom)
+ * 
+ * with a board perspective of playing with blacks's pieces:
+ *     files are rendered: h -> a (left to right)
+ *     ranks are rendered: 1 -> 8 (top to bottom)
+ * 
+ */
+export const getBoardRenderOrder: (playersTurn: pieceColor, flippedBoard?: boolean) => [file[], rank[]] = (playersTurn, flippedBoard = false) => {
+    return playersTurn === 'black' && flippedBoard ? [filesReversed, ranks] : [files, ranksReversed];
 }
 
 /**

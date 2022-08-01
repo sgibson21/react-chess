@@ -10,13 +10,14 @@ interface PieceGridProps {
     onCapture: (pieceID: string) => void;
     animate: boolean;
     boardState: BoardInternalState;
+    allowFlip: boolean;
     onPromotion: OnPromotionCallback;
 }
 
-export const PieceGrid = ({ locations, onClick, onDragStart, onCapture, animate, boardState, onPromotion }: PieceGridProps) => {
+export const PieceGrid = ({ locations, onClick, onDragStart, onCapture, animate, boardState, allowFlip, onPromotion }: PieceGridProps) => {
 
     return (
-        <div className='piece-grid'>
+        <div className={`piece-grid ${ allowFlip ? 'allow-flip' : '' } ${boardState.playersTurn}`}>
             {
                 locations.map(location => {
                     return (

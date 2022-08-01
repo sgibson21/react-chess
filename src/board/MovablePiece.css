@@ -2,7 +2,8 @@
     position: absolute;
 }
 
-.animate {
+/* don't animate the pieces when the board is being flipped between turns */
+.piece-grid:not(.allow-flip) .animate {
     transition: top 0.2s, left 0.2s;
 }
 
@@ -107,4 +108,74 @@
 
 ._1 {
     top: 700px;
+}
+
+/* 
+   =============================================================================
+    Positions are flipped when we are allowing board flips AND it's black's turn   
+   =============================================================================
+*/
+
+.allow-flip.black .a {
+    left: 700px;
+}
+
+.allow-flip.black .b {
+    left: 600px;
+}
+
+.allow-flip.black .c {
+    left: 500px;
+}
+
+.allow-flip.black .d {
+    left: 400px;
+}
+
+.allow-flip.black .e {
+    left: 300px;
+}
+
+.allow-flip.black .f {
+    left: 200px;
+}
+
+.allow-flip.black .g {
+    left: 100px;
+}
+
+.allow-flip.black .h {
+    left: 0;
+}
+
+.allow-flip.black ._8 {
+    top: 700px;
+}
+
+.allow-flip.black ._7 {
+    top: 600px;
+}
+
+.allow-flip.black ._6 {
+    top: 500px;
+}
+
+.allow-flip.black ._5 {
+    top: 400px;
+}
+
+.allow-flip.black ._4 {
+    top: 300px;
+}
+
+.allow-flip.black ._3 {
+    top: 200px;
+}
+
+.allow-flip.black ._2 {
+    top: 100px;
+}
+
+.allow-flip.black ._1 {
+    top: 0;
 }

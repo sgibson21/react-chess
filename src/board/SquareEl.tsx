@@ -5,11 +5,13 @@ interface SquareProps {
     square: Square;
     isActive: boolean;
     isAvailable: boolean;
+    firstFile: boolean;
+    bottomRank: boolean;
     onClick: () => void;
     onDrop: () => void;
 }
 
-export const SquareEl = ({ square, isActive, isAvailable, onClick, onDrop }: SquareProps) => {
+export const SquareEl = ({ square, isActive, isAvailable, firstFile, bottomRank, onClick, onDrop }: SquareProps) => {
 
     const { file, rank } = square;
     const sqColor = getColor(square);
@@ -27,11 +29,11 @@ export const SquareEl = ({ square, isActive, isAvailable, onClick, onDrop }: Squ
             onClick={() => onClick()}
         >
             {
-                rank === 1 &&
+                bottomRank &&
                 <div className="label file-label">{file}</div>
             }
             {
-                file === 'a' &&
+                firstFile &&
                 <div className="label rank-label">{rank}</div>
             }
             {

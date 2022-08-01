@@ -9,8 +9,8 @@ import { setBoard } from '../app/pieceLocationSlice';
 import {
     back, forward, clearActiveSq, getActiveSquare, getLocatedPieces, getSquare,
     getSquareByPieceID, hasActiveSq, isActiveSq, isAvailableSquare, isOwnPiece,
-    movePieceTo, setActiveSquare, BoardInternalState, files, ranks, isValidMove,
-    promotePiece, readyForActiveSquareSelection, switchPlayer, LocatedPiece
+    movePieceTo, setActiveSquare, BoardInternalState, isValidMove, LocatedPiece,
+    promotePiece, readyForActiveSquareSelection, switchPlayer, getBoardRenderOrder
 } from './board-utils';
 import { Square } from './square';
 import { Socket } from 'socket.io-client';
@@ -51,7 +51,7 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
     // ======================================
     //              Web Sockets
     // ======================================
-    const useWebSockets: boolean = true;
+    const useWebSockets: boolean = false;
     const makeMove = (state: BoardInternalState) => {
         if (useWebSockets) {
             socket.emit('state-change', state, (res: {status: number}) => {
@@ -63,6 +63,9 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
             setBoardState(state);
         }
     };
+
+    const allowFlip = true;
+    const [files, ranks] = getBoardRenderOrder(boardState.playersTurn, allowFlip);
 
     const squareClicked = (file: file, rank: rank) => {
         setAnimate(true);
@@ -149,11 +152,10 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
             <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
             <div className="board">
                 {
-                    ranks.map((r, i) => {
-                        const rank: rank = 8 - i as rank;
+                    ranks.map((rank, rankIndex) => {
                         return (
                             <div key={rank} className="rank">
-                                {files.map(file => (
+                                {files.map((file, fileIndex) => (
                                     <SquareEl 
                                         key={`square-${file}-${rank}`}
                                         square={getSquare(file, rank, boardState)}
@@ -161,6 +163,8 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
                                         isActive={isActiveSq(file, rank, boardState)}
                                         isAvailable={isAvailableSquare(file, rank, boardState)}
                                         onDrop={() => onDrop(file, rank)}
+                                        firstFile={fileIndex === 0}
+                                        bottomRank={rankIndex === 7}
                                     />
                                 ))}
                             </div>
@@ -176,6 +180,7 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
                     animate={animate}
                     boardState={boardState}
                     onPromotion={onPromotion}
+                    allowFlip={allowFlip}
                 ></PieceGrid>
 
             </div>
