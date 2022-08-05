@@ -1,12 +1,6 @@
-.App {
-  padding: 50px;
-}
-
-.pieces {
-  width: 800px;
-  margin: 0 auto;
-  user-select: none;
-  position: absolute;
-  top: 50px;
-  left: 560px;
+h1 {
+  text-align: center;
+  margin: 20px auto 35px auto;
+  width: 200px;
+  color: rgb(179, 179, 179);
 }

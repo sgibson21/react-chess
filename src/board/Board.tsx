@@ -16,8 +16,28 @@ import { Square } from './square';
 import { Socket } from 'socket.io-client';
 import useHistory from './hooks/useHistory';
 import { OnPromotionCallback } from './MovablePiece';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
-export const Board = ({initialState, socket}: {initialState: BoardInternalState, socket: Socket}) => {
+export type BoardOptions = {
+    useWebSockets: boolean;
+    allowFlip: boolean;
+};
+
+type BoardProps = {
+    initialState: BoardInternalState;
+    socket: Socket;
+    options: BoardOptions;
+};
+
+const defaultBoardOptions: BoardOptions = {
+    useWebSockets: false,
+    allowFlip: false,
+};
+
+export const Board = ({initialState, socket, options = defaultBoardOptions}: BoardProps) => {
+
+    const { useWebSockets, allowFlip } = options;
 
     const [boardState, setBoardState] = useState<BoardInternalState>(initialState);
     const [animate, setAnimate] = useState(true);
@@ -51,7 +71,6 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
     // ======================================
     //              Web Sockets
     // ======================================
-    const useWebSockets: boolean = false;
     const makeMove = (state: BoardInternalState) => {
         if (useWebSockets) {
             socket.emit('state-change', state, (res: {status: number}) => {
@@ -64,7 +83,6 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
         }
     };
 
-    const allowFlip = true;
     const [files, ranks] = getBoardRenderOrder(boardState.playersTurn, allowFlip);
 
     const squareClicked = (file: file, rank: rank) => {
@@ -148,9 +166,9 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
     };
 
     return (
-        <>
-            <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
+        <DndProvider backend={HTML5Backend}>
             <div className="board">
+                <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
                 {
                     ranks.map((rank, rankIndex) => {
                         return (
@@ -184,7 +202,7 @@ export const Board = ({initialState, socket}: {initialState: BoardInternalState,
                 ></PieceGrid>
 
             </div>
-        </>
+        </DndProvider>
     );
 
 }
