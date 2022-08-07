@@ -153,9 +153,10 @@ export const getEnPassantPieceSq: (state: BoardState) => coord | false = (state:
 
 export const back: (state: BoardState) => BoardState = (state: BoardState) => {
     state = {...state};
-    if (state.undoHistory.length > 0) {
+    // dont allow history during promotion selection
+    if (state.undoHistory.length > 0 && !state.promotionState) {
         state = clearActiveSq(state);
-        const movesToUndo = state.undoHistory.splice(-1, 1)[0];
+        const movesToUndo = getMovesToUndo(state);
         makeHistoryMovesBackwards(movesToUndo, state);
         state.redoHistory.push(movesToUndo);
         state = switchPlayer(state);
@@ -165,9 +166,10 @@ export const back: (state: BoardState) => BoardState = (state: BoardState) => {
 
 export const forward: (state: BoardState) => BoardState = (state: BoardState) => {
     state = {...state};
-    if (state.redoHistory.length > 0) {
+    // dont allow history during promotion selection
+    if (state.redoHistory.length > 0 && !state.promotionState) {
         state = clearActiveSq(state);
-        const movesToRedo = state.redoHistory.splice(-1, 1)[0];
+        const movesToRedo = getMovesToRedo(state);
         makeHistoryMovesForwards(movesToRedo, state);
         state.undoHistory.push(movesToRedo);
         state = switchPlayer(state);
@@ -234,6 +236,20 @@ export const promotePiece = ({ file, rank }: coord, type: pieceType, state: Boar
     changePiece({file, rank}, type, state);
     state = switchPlayer(state); // TODO: you need to lock normal player moves while a piece needs to be selected
     state.promotionState = undefined;
+
+    return state;
+}
+
+export const cancelPromotion = (state: BoardState) => {
+    state = {...state};
+
+    // clear the promotionState so the player can activate another piece
+    state.promotionState = undefined;
+
+    // go back without switching player or adding the undone move to the redo list
+    state = clearActiveSq(state);
+    const movesToUndo = getMovesToUndo(state);
+    makeHistoryMovesBackwards(movesToUndo, state);
 
     return state;
 }
@@ -387,6 +403,14 @@ const clearAvailableSquares = (state: BoardState) => {
     state = {...state};
     state.availableSquares = [];
     return state;
+}
+
+const getMovesToUndo = (state: BoardState) => {
+    return state.undoHistory.splice(-1, 1)[0];
+}
+
+const getMovesToRedo = (state: BoardState) => {
+    return state.redoHistory.splice(-1, 1)[0];
 }
 
 const getSquareWithPiece: (type: pieceType, color: pieceColor, state: BoardState) => SquareState | undefined = (type: pieceType, color: pieceColor, state: BoardState) => {

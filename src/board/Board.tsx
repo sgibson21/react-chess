@@ -9,7 +9,7 @@ import {
     back, forward, clearActiveSq, getActiveSquare, getLocatedPieces, getSquare,
     getSquareByPieceID, hasActiveSq, isActiveSq, isAvailableSquare, isOwnPiece,
     movePieceTo, setActiveSquare, BoardState, isValidMove, LocatedPiece,
-    promotePiece, readyForActiveSquareSelection, switchPlayer, getBoardRenderOrder
+    promotePiece, readyForActiveSquareSelection, getBoardRenderOrder, cancelPromotion
 } from './utils/board-utils';
 import { SquareState } from './utils/square-utils';
 import { Socket } from 'socket.io-client';
@@ -151,12 +151,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
     const onPromotion: OnPromotionCallback = (selection, coord) => {
         if (selection === 'cancel') {
             makeMove(
-                switchPlayer(
-                    // go back (which switches player),
-                    // then switch back to the same player
-                    // as they are canceling thier move
-                    back(boardState)
-                )
+                cancelPromotion(boardState)
             );
         } else if (coord) {
             makeMove(
