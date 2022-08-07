@@ -1,12 +1,12 @@
-import { Piece } from '../pieces/piece';
-import { BoardInternalState } from './board-utils';
+import { Piece } from './piece-utils';
+import { BoardState } from './board-utils';
 import {
     getPlayingColor,
     getPlayingDirection,
     getSquare,
     getSquareFrom
 } from './board-utils';
-import { coord, direction, knightDirection, pieceColor, pieceType } from './types';
+import { coord, direction, pieceColor, pieceType } from '../types';
 
 /**
  * Attack vectors for any given piece, by a ranged piece.
@@ -19,6 +19,19 @@ type attackVector = {
     pieceTypes: pieceType[];
     ranged: boolean;
 };
+
+/**
+ * represents a direction in which a knight can attack a given coordinate from
+ */
+ type knightDirection =
+ { file: 1, rank: 2}   |
+ { file: 2, rank: 1}   |
+ { file: 2, rank: -1}  |
+ { file: 1, rank: -2}  |
+ { file: -1, rank: -2} |
+ { file: -2, rank: -1} |
+ { file: -2, rank: 1}  |
+ { file: -1, rank: 2};
 
 /**
  * directions to check in a straight line for an attacking bishop, queen - nw, ne, se, sw
@@ -83,7 +96,7 @@ const attackVectors: attackVector[] = [
  * @param coordinate the coordinate of a square to check if it is attacked
  * @returns 
  */
-export const isAttacked: (board: BoardInternalState, { file, rank }: coord) => boolean = (board: BoardInternalState, { file, rank }: coord) => {
+export const isAttacked: (board: BoardState, { file, rank }: coord) => boolean = (board: BoardState, { file, rank }: coord) => {
 
     const square = getSquare(file, rank, board);
     const defendingColor = getPlayingColor(board);
@@ -125,7 +138,7 @@ export const isAttacked: (board: BoardInternalState, { file, rank }: coord) => b
  * @param attackVectors a grouping of directions and what pieces can move in those directions
  * @param defendingColor the color of the defending piece
  */
-const scoutLines: (board: BoardInternalState, fromSq: coord, attackVectors: attackVector[], defendingColor: pieceColor) => Piece | undefined = (board: BoardInternalState, fromSq: coord, attackVectors: attackVector[], defendingColor: pieceColor) => {
+const scoutLines: (board: BoardState, fromSq: coord, attackVectors: attackVector[], defendingColor: pieceColor) => Piece | undefined = (board: BoardState, fromSq: coord, attackVectors: attackVector[], defendingColor: pieceColor) => {
     let attackingPiece: Piece | undefined;
 
     attackVectors.find(({directions, pieceTypes, ranged}: attackVector) => {
@@ -159,7 +172,7 @@ const scoutLines: (board: BoardInternalState, fromSq: coord, attackVectors: atta
  * @param fromSq the square from which to look from for attacking knights
  * @param defendingColor the color of the defending piece
  */
-const scoutKnights: (board: BoardInternalState, fromSq: coord, defendingColor: pieceColor) => Piece | undefined = (board: BoardInternalState, fromSq: coord, defendingColor: pieceColor) => {
+const scoutKnights: (board: BoardState, fromSq: coord, defendingColor: pieceColor) => Piece | undefined = (board: BoardState, fromSq: coord, defendingColor: pieceColor) => {
     let attackingPiece: Piece | undefined;
 
     knightDirections.find((knightDirection: knightDirection) => {
@@ -187,7 +200,7 @@ const scoutKnights: (board: BoardInternalState, fromSq: coord, defendingColor: p
  * @param fromSq the square from which to look from in a straight line, for a piece, in the given direction
  * @param direction the direction in which to look in a straight line
  */
-const getPieceInLineOfSight: (board: BoardInternalState, fromSq: coord, direction: direction) => Piece | undefined = (board: BoardInternalState, fromSq: coord, direction: direction) => {
+const getPieceInLineOfSight: (board: BoardState, fromSq: coord, direction: direction) => Piece | undefined = (board: BoardState, fromSq: coord, direction: direction) => {
     let piece: Piece | undefined;
     let currentCoord: coord | undefined = fromSq;
 
@@ -213,7 +226,7 @@ const getPieceInLineOfSight: (board: BoardInternalState, fromSq: coord, directio
  * @param fromSq 
  * @param direction 
  */
-const getAdjacentPiece:(board: BoardInternalState, fromSq: coord, direction: direction) => Piece | undefined = (board: BoardInternalState, fromSq: coord, direction: direction) => {
+const getAdjacentPiece:(board: BoardState, fromSq: coord, direction: direction) => Piece | undefined = (board: BoardState, fromSq: coord, direction: direction) => {
     // get the coord in the given direction
     const targetSq = getSquareFrom(fromSq.file, direction.file, fromSq.rank, direction.rank);
 

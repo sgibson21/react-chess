@@ -1,5 +1,5 @@
 import { DragPreviewImage, useDrag } from 'react-dnd'
-import { Piece } from '../pieces/piece';
+import { Piece } from './utils/piece-utils';
 import { file, rank } from './types';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 

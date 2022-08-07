@@ -1,4 +1,4 @@
-import { BoardInternalState } from './board-utils';
+import { BoardState } from './board-utils';
 import {
     getEnPassantCaptureSq,
     getEnPassantPieceSq,
@@ -9,19 +9,19 @@ import {
     getFileFrom,
     getSquareFrom,
 } from './board-utils';
-import { getCoordinates, Square } from './square';
-import { pieceType, rank, direction } from './types';
+import { getCoordinates, SquareState } from './square-utils';
+import { pieceType, rank, direction } from '../types';
     
-const navigatorMap: Record<pieceType, (boardState: BoardInternalState, fromSquare: Square) => Square[]> = {
-    pawn: (boardState: BoardInternalState, fromSquare: Square) => pawnMovement(boardState, fromSquare),
-    knight: (boardState: BoardInternalState, fromSquare: Square) => knightMovement(boardState, fromSquare),
-    bishop: (boardState: BoardInternalState, fromSquare: Square) => bishopMovement(boardState, fromSquare),
-    rook: (boardState: BoardInternalState, fromSquare: Square) => rookMovement(boardState, fromSquare),
-    queen: (boardState: BoardInternalState, fromSquare: Square) => queenMovement(boardState, fromSquare),
-    king: (boardState: BoardInternalState, fromSquare: Square) => kingMovement(boardState, fromSquare)
+const navigatorMap: Record<pieceType, (boardState: BoardState, fromSquare: SquareState) => SquareState[]> = {
+    pawn: (boardState: BoardState, fromSquare: SquareState) => pawnMovement(boardState, fromSquare),
+    knight: (boardState: BoardState, fromSquare: SquareState) => knightMovement(boardState, fromSquare),
+    bishop: (boardState: BoardState, fromSquare: SquareState) => bishopMovement(boardState, fromSquare),
+    rook: (boardState: BoardState, fromSquare: SquareState) => rookMovement(boardState, fromSquare),
+    queen: (boardState: BoardState, fromSquare: SquareState) => queenMovement(boardState, fromSquare),
+    king: (boardState: BoardState, fromSquare: SquareState) => kingMovement(boardState, fromSquare)
 };
 
-export const getPieceMovement: (boardState: BoardInternalState, square: Square) => Square[] = (boardState: BoardInternalState, square: Square) => {
+export const getPieceMovement: (boardState: BoardState, square: SquareState) => SquareState[] = (boardState: BoardState, square: SquareState) => {
     const piece = square.piece;
 
     if (piece) {
@@ -30,7 +30,7 @@ export const getPieceMovement: (boardState: BoardInternalState, square: Square) 
                 const move = {from: getCoordinates(square), to: getCoordinates(toSq)};
                 return !simulateMove({
                     move: move,
-                    callback: (sim: BoardInternalState) => isInCheck(sim),
+                    callback: (sim: BoardState) => isInCheck(sim),
                     state: boardState
                 });
             });
@@ -39,8 +39,8 @@ export const getPieceMovement: (boardState: BoardInternalState, square: Square) 
     return [];
 }
 
-const pawnMovement: (boardState: BoardInternalState, fromSquare: Square) => Square[] = (boardState: BoardInternalState, fromSquare: Square) => {
-    const movements: Square[] = [];
+const pawnMovement: (boardState: BoardState, fromSquare: SquareState) => SquareState[] = (boardState: BoardState, fromSquare: SquareState) => {
+    const movements: SquareState[] = [];
 
     // gets the direction the piece moves, based on piece color
     const direction = getPlayingDirection(boardState);
@@ -69,8 +69,8 @@ const pawnMovement: (boardState: BoardInternalState, fromSquare: Square) => Squa
     return movements;
 }
 
-const knightMovement: (boardState: BoardInternalState, squareFrom: Square) => Square[] = (boardState: BoardInternalState, squareFrom: Square) => {
-    const movements: Square[] = [];
+const knightMovement: (boardState: BoardState, squareFrom: SquareState) => SquareState[] = (boardState: BoardState, squareFrom: SquareState) => {
+    const movements: SquareState[] = [];
 
     const coords = [
         { file: 1, rank: 2},
@@ -96,7 +96,7 @@ const knightMovement: (boardState: BoardInternalState, squareFrom: Square) => Sq
     return movements;
 }
 
-const bishopMovement: (boardState: BoardInternalState, square: Square) => Square[] = (boardState: BoardInternalState, square: Square) => {
+const bishopMovement: (boardState: BoardState, square: SquareState) => SquareState[] = (boardState: BoardState, square: SquareState) => {
     return [
         ...getBishopPath(boardState, square, 1, 1),
         ...getBishopPath(boardState, square, -1, 1),
@@ -105,7 +105,7 @@ const bishopMovement: (boardState: BoardInternalState, square: Square) => Square
     ];
 }
 
-const rookMovement: (boardState: BoardInternalState, square: Square) => Square[] = (boardState: BoardInternalState, square: Square) => {
+const rookMovement: (boardState: BoardState, square: SquareState) => SquareState[] = (boardState: BoardState, square: SquareState) => {
     return [
         ...getRookPath(boardState, square, 1),
         ...getRookPath(boardState, square, -1),
@@ -114,15 +114,15 @@ const rookMovement: (boardState: BoardInternalState, square: Square) => Square[]
     ];
 }
 
-const queenMovement: (boardState: BoardInternalState, square: Square) => Square[] = (boardState: BoardInternalState, square: Square) => {
+const queenMovement: (boardState: BoardState, square: SquareState) => SquareState[] = (boardState: BoardState, square: SquareState) => {
     return [
         ...bishopMovement(boardState, square),
         ...rookMovement(boardState, square),
     ];
 }
 
-const kingMovement: (boardState: BoardInternalState, square: Square) => Square[] = (boardState: BoardInternalState, square: Square) => {
-    const movements: Square[] = [];
+const kingMovement: (boardState: BoardState, square: SquareState) => SquareState[] = (boardState: BoardState, square: SquareState) => {
+    const movements: SquareState[] = [];
     const coords: direction[] = [
         { file: -1, rank: 1},
         { file: 0, rank: 1},
@@ -164,7 +164,7 @@ const kingMovement: (boardState: BoardInternalState, square: Square) => Square[]
                         from: {file: square.file, rank: square.rank},
                         to: {file: pathToRookShort[0].file, rank: pathToRookShort[0].rank}
                     },
-                    callback: (sim: BoardInternalState) => isInCheck(sim),
+                    callback: (sim: BoardState) => isInCheck(sim),
                     state: boardState
                 });
 
@@ -185,7 +185,7 @@ const kingMovement: (boardState: BoardInternalState, square: Square) => Square[]
                         from: {file: square.file, rank: square.rank},
                         to: {file: pathToRookLong[0].file, rank: pathToRookLong[0].rank}
                     },
-                    callback: (sim: BoardInternalState) => isInCheck(sim),
+                    callback: (sim: BoardState) => isInCheck(sim),
                     state: boardState
                 });
 
@@ -205,7 +205,7 @@ const kingMovement: (boardState: BoardInternalState, square: Square) => Square[]
  * 
  * That path does NOT include the piece
  */
-const getPawnPath: (boardState: BoardInternalState, from: Square, direction: 1 | -1, distance: number) => Square[] = (boardState: BoardInternalState, from: Square, direction: 1 | -1, distance: number) => {
+const getPawnPath: (boardState: BoardState, from: SquareState, direction: 1 | -1, distance: number) => SquareState[] = (boardState: BoardState, from: SquareState, direction: 1 | -1, distance: number) => {
     const path = [];
     for (let i = 1; i <= distance; i++) {
         const square = getSquare(from.file, from.rank + (direction * i) as rank, boardState);
@@ -218,8 +218,8 @@ const getPawnPath: (boardState: BoardInternalState, from: Square, direction: 1 |
     return path;
 }
 
-const getPawnCaptures: (boardState: BoardInternalState, from: Square, direction: 1 | -1) => Square[] = (boardState: BoardInternalState, from: Square, direction: 1 | -1) => {
-    const captures: Square[] = [];
+const getPawnCaptures: (boardState: BoardState, from: SquareState, direction: 1 | -1) => SquareState[] = (boardState: BoardState, from: SquareState, direction: 1 | -1) => {
+    const captures: SquareState[] = [];
     const fileDirections = [1, -1];
     const coords = fileDirections.map(fileDir => getSquareFrom(from.file, fileDir, from.rank, direction)).filter(x => !!x);
     coords.forEach(coord => {
@@ -233,8 +233,8 @@ const getPawnCaptures: (boardState: BoardInternalState, from: Square, direction:
     return captures;
 }
 
-const getEnPassant: (boardState: BoardInternalState, fromSquare: Square) => Square[] = (boardState: BoardInternalState, fromSquare: Square) => {
-    const movements: Square[] = [];
+const getEnPassant: (boardState: BoardState, fromSquare: SquareState) => SquareState[] = (boardState: BoardState, fromSquare: SquareState) => {
+    const movements: SquareState[] = [];
 
     const enPassantCaptureSq = getEnPassantCaptureSq(boardState);
     const enPassantPieceSq = getEnPassantPieceSq(boardState);
@@ -254,8 +254,8 @@ const getEnPassant: (boardState: BoardInternalState, fromSquare: Square) => Squa
     return movements;
 }
 
-const getBishopPath: (boardState: BoardInternalState, from: Square, fileDirection: 1 | -1, rankDirection: 1 | -1) => Square[] = (boardState: BoardInternalState, from: Square, fileDirection: 1 | -1, rankDirection: 1 | -1) => {
-    const path: Square[] = [];
+const getBishopPath: (boardState: BoardState, from: SquareState, fileDirection: 1 | -1, rankDirection: 1 | -1) => SquareState[] = (boardState: BoardState, from: SquareState, fileDirection: 1 | -1, rankDirection: 1 | -1) => {
+    const path: SquareState[] = [];
 
     // describes if no pieces are blocking the path up to this point
     let openPath: boolean;
@@ -290,8 +290,8 @@ const getBishopPath: (boardState: BoardInternalState, from: Square, fileDirectio
  * @param isRankPath Is it a path along a rank?
  * @returns 
  */
-const getRookPath: (boardState: BoardInternalState, from: Square, direction: 1 | -1, isRankPath?: boolean) => Square[] = (boardState: BoardInternalState, from: Square, direction: 1 | -1, isRankPath = false) => {
-    const path: Square[] = [];
+const getRookPath: (boardState: BoardState, from: SquareState, direction: 1 | -1, isRankPath?: boolean) => SquareState[] = (boardState: BoardState, from: SquareState, direction: 1 | -1, isRankPath = false) => {
+    const path: SquareState[] = [];
 
     // describes if...
     let openPath: boolean;

@@ -1,11 +1,10 @@
-import { Piece } from '../pieces/piece';
 import { useSelector } from 'react-redux';
 import { DraggablePiece } from './DraggablePiece';
 import { coord, file, pieceType, rank } from './types';
 import { useDrop } from 'react-dnd';
-import { BoardInternalState } from './board-utils';
-import { isActiveSq } from './board-utils';
-import { PAWN } from '../pieces/pieces';
+import { BoardState } from './utils/board-utils';
+import { isActiveSq } from './utils/board-utils';
+import { Piece, PAWN } from './utils/piece-utils';
 import './MovablePiece.css';
 import PromotionSelect, { promotionType } from './PromotionSelect';
 
@@ -17,7 +16,7 @@ type MovablePieceData = {
     onDragStart: (file: file, rank: rank) => void;
     onCapture: (pieceID: string) => void;
     animate: boolean;
-    boardState: BoardInternalState;
+    boardState: BoardState;
     onPromotion: OnPromotionCallback;
 };
 

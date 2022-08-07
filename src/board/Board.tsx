@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import './Board.css';
 import { file, rank } from './types';
-import { SquareEl } from './SquareEl';
+import { Square } from './Square';
 import { CustomDragLayer } from './CustomDragLayer';
 import { useDispatch } from 'react-redux';
 import { setBoard } from '../app/pieceLocationSlice';
 import {
     back, forward, clearActiveSq, getActiveSquare, getLocatedPieces, getSquare,
     getSquareByPieceID, hasActiveSq, isActiveSq, isAvailableSquare, isOwnPiece,
-    movePieceTo, setActiveSquare, BoardInternalState, isValidMove, LocatedPiece,
+    movePieceTo, setActiveSquare, BoardState, isValidMove, LocatedPiece,
     promotePiece, readyForActiveSquareSelection, switchPlayer, getBoardRenderOrder
-} from './board-utils';
-import { Square } from './square';
+} from './utils/board-utils';
+import { SquareState } from './utils/square-utils';
 import { Socket } from 'socket.io-client';
 import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { DndProvider } from 'react-dnd';
@@ -25,7 +25,7 @@ export type BoardOptions = {
 };
 
 type BoardProps = {
-    initialState: BoardInternalState;
+    initialState: BoardState;
     socket: Socket;
     options: BoardOptions;
 };
@@ -39,7 +39,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
 
     const { useWebSockets, allowFlip } = options;
 
-    const [boardState, setBoardState] = useState<BoardInternalState>(initialState);
+    const [boardState, setBoardState] = useState<BoardState>(initialState);
     const [animate, setAnimate] = useState(true);
 
     // pieces need to be in a consistent order - not in the order they appear on the board
@@ -71,7 +71,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
     // ======================================
     //              Web Sockets
     // ======================================
-    const makeMove = (state: BoardInternalState) => {
+    const makeMove = (state: BoardState) => {
         if (useWebSockets) {
             socket.emit('state-change', state, (res: {status: number}) => {
                 if (res.status === 200) {
@@ -139,7 +139,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
     };
     
     const onCapture = (pieceID: string) => {
-        const toSquare: Square | undefined = getSquareByPieceID(pieceID, boardState);
+        const toSquare: SquareState | undefined = getSquareByPieceID(pieceID, boardState);
         if (toSquare) {
             setAnimate(false);
             makeMove(
@@ -175,7 +175,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
                     ranks.map((rank, rankIndex) => (
                         <div key={rank} className="rank">
                             {files.map((file, fileIndex) => (
-                                <SquareEl
+                                <Square
                                     key={`square-${file}-${rank}`}
                                     square={getSquare(file, rank, boardState)}
                                     onClick={() => squareClicked(file, rank)}

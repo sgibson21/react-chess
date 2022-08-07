@@ -1,8 +1,9 @@
+import classNames from 'classnames';
 import { useDrop } from 'react-dnd';
-import { getColor, Square } from './square';
+import { getColor, SquareState } from './utils/square-utils';
 
 interface SquareProps {
-    square: Square;
+    square: SquareState;
     isActive: boolean;
     isAvailable: boolean;
     firstFile: boolean;
@@ -11,7 +12,7 @@ interface SquareProps {
     onDrop: () => void;
 }
 
-export const SquareEl = ({ square, isActive, isAvailable, firstFile, bottomRank, onClick, onDrop }: SquareProps) => {
+export const Square = ({ square, isActive, isAvailable, firstFile, bottomRank, onClick, onDrop }: SquareProps) => {
 
     const { file, rank } = square;
     const sqColor = getColor(square);
@@ -22,10 +23,19 @@ export const SquareEl = ({ square, isActive, isAvailable, firstFile, bottomRank,
         collect: monitor => ({ isOver: !!monitor.isOver() })
     }), [onDrop]);
 
+    const squareClassNames: string = classNames(
+        'square',
+        sqColor,
+        {
+            'active': isActive,
+            'is-over': isOver
+        }
+    );
+
     return (
         <div
             ref={drop}
-            className={`square ${sqColor} ${isActive ? 'active' : ''} ${isOver ? 'is-over' : ''}`}
+            className={squareClassNames}
             onClick={() => onClick()}
         >
             {

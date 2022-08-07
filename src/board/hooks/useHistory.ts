@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { BoardInternalState } from '../board-utils';
+import { BoardState } from '../utils/board-utils';
 
-export default function useHistory(board: BoardInternalState, onBack: () => void, onForward: () => void) {
+export default function useHistory(board: BoardState, onBack: () => void, onForward: () => void) {
 
     const historyListener = (e: KeyboardEvent) => {
         if (e.key === 'ArrowRight') {

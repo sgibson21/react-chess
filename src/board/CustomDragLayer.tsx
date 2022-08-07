@@ -1,6 +1,6 @@
 import { CSSProperties, useRef } from 'react';
 import { useDragLayer, XYCoord } from 'react-dnd';
-import { Square } from './square';
+import { SquareState } from './utils/square-utils';
 
 const layerStyles: CSSProperties = {
     position: 'fixed',
@@ -32,7 +32,7 @@ function getItemStyles(currentOffset: XYCoord | null, containerRef: any) {
     }
   }
 
-export const CustomDragLayer = ({ activeSquare }: { activeSquare: Square | null }) => {
+export const CustomDragLayer = ({ activeSquare }: { activeSquare: SquareState | null }) => {
 
     const { item, isDragging, currentOffset } = useDragLayer(monitor => ({
         item: monitor.getItem(),

@@ -31,28 +31,3 @@ export type direction = {
     file: -1 | 0 | 1;
     rank: -1 | 0 | 1;
 };
-
-/**
- * represents a direction in which a knight can attack a given coordinate from
- */
-export type knightDirection =
-    { file: 1, rank: 2}   |
-    { file: 2, rank: 1}   |
-    { file: 2, rank: -1}  |
-    { file: 1, rank: -2}  |
-    { file: -1, rank: -2} |
-    { file: -2, rank: -1} |
-    { file: -2, rank: 1}  |
-    { file: -1, rank: 2};
-
-export type enPassantState = {
-    /**
-     * square that the pawn to be captured moved to
-     */
-    pieceSquare: coord;
-
-    /**
-     * square that the pawn to be captured skipped, on it's first move
-     */
-    captureSquare: coord;
-};
