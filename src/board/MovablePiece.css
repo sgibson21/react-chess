@@ -13,6 +13,8 @@
     border-radius: 3px;
     box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.45);
     animation: fadein 0.2s;
+    position: relative;
+    z-index: 100;
 }
 
 @keyframes fadein {
