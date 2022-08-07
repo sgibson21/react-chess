@@ -5,11 +5,6 @@
     position: relative;
 }
 
-.piece-grid {
-    position: absolute;
-    top: 0;
-}
-
 .square {
     width: 100px;
     height: 100px;

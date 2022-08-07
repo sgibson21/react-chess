@@ -3,7 +3,6 @@ import './Board.css';
 import { file, rank } from './types';
 import { SquareEl } from './SquareEl';
 import { CustomDragLayer } from './CustomDragLayer';
-import { PieceGrid } from './PieceGrid';
 import { useDispatch } from 'react-redux';
 import { setBoard } from '../app/pieceLocationSlice';
 import {
@@ -14,10 +13,11 @@ import {
 } from './board-utils';
 import { Square } from './square';
 import { Socket } from 'socket.io-client';
-import useHistory from './hooks/useHistory';
-import { OnPromotionCallback } from './MovablePiece';
+import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import useHistory from './hooks/useHistory';
+import classNames from 'classnames';
 
 export type BoardOptions = {
     useWebSockets: boolean;
@@ -165,41 +165,45 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
         }
     };
 
+    const boardClassNames: string = classNames('board', { 'allow-flip': allowFlip }, `player-${boardState.playersTurn}`);
+
     return (
         <DndProvider backend={HTML5Backend}>
-            <div className="board">
+            <div className={boardClassNames}>
                 <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
                 {
-                    ranks.map((rank, rankIndex) => {
-                        return (
-                            <div key={rank} className="rank">
-                                {files.map((file, fileIndex) => (
-                                    <SquareEl 
-                                        key={`square-${file}-${rank}`}
-                                        square={getSquare(file, rank, boardState)}
-                                        onClick={() => squareClicked(file, rank)}
-                                        isActive={isActiveSq(file, rank, boardState)}
-                                        isAvailable={isAvailableSquare(file, rank, boardState)}
-                                        onDrop={() => onDrop(file, rank)}
-                                        firstFile={fileIndex === 0}
-                                        bottomRank={rankIndex === 7}
-                                    />
-                                ))}
-                            </div>
-                        )
-                    })
+                    ranks.map((rank, rankIndex) => (
+                        <div key={rank} className="rank">
+                            {files.map((file, fileIndex) => (
+                                <SquareEl
+                                    key={`square-${file}-${rank}`}
+                                    square={getSquare(file, rank, boardState)}
+                                    onClick={() => squareClicked(file, rank)}
+                                    isActive={isActiveSq(file, rank, boardState)}
+                                    isAvailable={isAvailableSquare(file, rank, boardState)}
+                                    onDrop={() => onDrop(file, rank)}
+                                    firstFile={fileIndex === 0}
+                                    bottomRank={rankIndex === 7}
+                                />
+                            ))}
+                        </div>
+                    ))
                 }
 
-                <PieceGrid
-                    locations={pieces}
-                    onClick={(file, rank) => pieceClicked(file, rank)}
-                    onDragStart={(file, rank) => dragStart(file, rank)}
-                    onCapture={pieceID => onCapture(pieceID)}
-                    animate={animate}
-                    boardState={boardState}
-                    onPromotion={onPromotion}
-                    allowFlip={allowFlip}
-                ></PieceGrid>
+                {
+                    pieces.map(location => (
+                        <MovablePiece
+                            key={location.piece.id}
+                            piece={location.piece}
+                            onClick={pieceClicked}
+                            onDragStart={dragStart}
+                            onCapture={onCapture}
+                            animate={animate}
+                            boardState={boardState}
+                            onPromotion={onPromotion}
+                        />
+                    ))
+                }
 
             </div>
         </DndProvider>
