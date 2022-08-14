@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Board.css';
-import { file, rank } from './types';
+import { file, pieceColor, rank } from './types';
 import { Square } from './Square';
 import { CustomDragLayer } from './CustomDragLayer';
 import { useDispatch } from 'react-redux';
@@ -12,7 +12,6 @@ import {
     promotePiece, readyForActiveSquareSelection, getBoardRenderOrder, cancelPromotion
 } from './utils/board-utils';
 import { SquareState } from './utils/square-utils';
-import { Socket } from 'socket.io-client';
 import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -20,26 +19,36 @@ import useHistory from './hooks/useHistory';
 import classNames from 'classnames';
 
 export type BoardOptions = {
-    useWebSockets: boolean;
-    allowFlip: boolean;
+
+    /**
+     * Describes if the board should be flipped for players taking turns in local play
+     */
+    allowFlip?: boolean;
+
+    /**
+     * Describes the side this player is playing as, as part of an online game.
+     * Governs:
+     *      - which side the board should be facing
+     *      - what color the player can play as
+     */
+    side?: pieceColor;
 };
 
 type BoardProps = {
-    initialState: BoardState;
-    socket: Socket;
-    options: BoardOptions;
+    boardState: BoardState;
+    makeMove: (state: BoardState) => void;
+    options?: BoardOptions;
 };
 
 const defaultBoardOptions: BoardOptions = {
-    useWebSockets: false,
     allowFlip: false,
+    side: 'white'
 };
 
-export const Board = ({initialState, socket, options = defaultBoardOptions}: BoardProps) => {
+export const Board = ({boardState, makeMove, options = defaultBoardOptions}: BoardProps) => {
 
-    const { useWebSockets, allowFlip } = options;
+    const { allowFlip, side } = options;
 
-    const [boardState, setBoardState] = useState<BoardState>(initialState);
     const [animate, setAnimate] = useState(true);
 
     // pieces need to be in a consistent order - not in the order they appear on the board
@@ -53,37 +62,18 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
     }, [pieces]);
 
     useHistory(boardState, () => {
-        setAnimate(true);
-        makeMove(back(boardState));
+        if (!side) {
+            setAnimate(true);
+            makeMove(back(boardState));
+        }
     }, () => {
-        setAnimate(true);
-        makeMove(forward(boardState));
+        if (!side) {
+            setAnimate(true);
+            makeMove(forward(boardState));
+        }
     });
 
-    useEffect(() => {
-        socket.on('state-update', res => {
-            console.log('state update from web socket:', res);
-            setBoardState(res);
-        });
-
-    }, []);
-
-    // ======================================
-    //              Web Sockets
-    // ======================================
-    const makeMove = (state: BoardState) => {
-        if (useWebSockets) {
-            socket.emit('state-change', state, (res: {status: number}) => {
-                if (res.status === 200) {
-                    setBoardState(state);
-                }
-            });
-        } else {
-            setBoardState(state);
-        }
-    };
-
-    const [files, ranks] = getBoardRenderOrder(boardState.playersTurn, allowFlip);
+    const [files, ranks] = getBoardRenderOrder(boardState.playersTurn, allowFlip, side);
 
     const squareClicked = (file: file, rank: rank) => {
         setAnimate(true);
@@ -97,7 +87,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
     
     const pieceClicked = (file: file, rank: rank) => {
         // set active piece if they've clicked their own piece and it's their turn
-        if (readyForActiveSquareSelection(file, rank, boardState)) {
+        if (readyForActiveSquareSelection(file, rank, boardState, side)) {
             makeMove(
                 setActiveSquare(file, rank, boardState)
             );
@@ -119,7 +109,7 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
     
     const dragStart = (file: file, rank: rank) => {
         // set active piece if they've clicked their own piece and it's their turn
-        if (readyForActiveSquareSelection(file, rank, boardState)) {
+        if (readyForActiveSquareSelection(file, rank, boardState, side)) {
             makeMove(
                 setActiveSquare(file, rank, boardState)
             );
@@ -160,11 +150,21 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
         }
     };
 
-    const boardClassNames: string = classNames('board', { 'allow-flip': allowFlip }, `player-${boardState.playersTurn}`);
+    const boardClassNames: string = classNames({
+        'allow-flip': allowFlip ,
+        [`side-${side}`]: !!side
+    });
+
+    /**
+     * don't show what's active or available if it's not the current side's turn
+     * 
+     * TODO: ideally this info isnt sent over the socket but will do for now
+     */
+    const showPieceOptions = !side || side === boardState.playersTurn;
 
     return (
         <DndProvider backend={HTML5Backend}>
-            <div className={boardClassNames}>
+            <div className={`board player-${boardState.playersTurn} ${boardClassNames}`}>
                 <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
                 {
                     ranks.map((rank, rankIndex) => (
@@ -173,12 +173,12 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
                                 <Square
                                     key={`square-${file}-${rank}`}
                                     square={getSquare(file, rank, boardState)}
-                                    onClick={() => squareClicked(file, rank)}
-                                    isActive={isActiveSq(file, rank, boardState)}
-                                    isAvailable={isAvailableSquare(file, rank, boardState)}
-                                    onDrop={() => onDrop(file, rank)}
+                                    isActive={showPieceOptions && isActiveSq(file, rank, boardState)}
+                                    isAvailable={showPieceOptions && isAvailableSquare(file, rank, boardState)}
                                     firstFile={fileIndex === 0}
                                     bottomRank={rankIndex === 7}
+                                    onClick={() => squareClicked(file, rank)}
+                                    onDrop={() => onDrop(file, rank)}
                                 />
                             ))}
                         </div>
@@ -190,11 +190,12 @@ export const Board = ({initialState, socket, options = defaultBoardOptions}: Boa
                         <MovablePiece
                             key={location.piece.id}
                             piece={location.piece}
+                            boardState={boardState}
+                            side={side}
+                            animate={animate}
                             onClick={pieceClicked}
                             onDragStart={dragStart}
                             onCapture={onCapture}
-                            animate={animate}
-                            boardState={boardState}
                             onPromotion={onPromotion}
                         />
                     ))

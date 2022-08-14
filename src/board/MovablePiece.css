@@ -113,71 +113,71 @@
 }
 
 /* 
-   =============================================================================
-    Positions are flipped when we are allowing board flips AND it's black's turn   
-   =============================================================================
+ Positions are flipped for one of two reasons:
+    - we are allowing board flips AND it's black's turn
+    - it's an online game and we're on black's side
 */
 
-.allow-flip.player-black .a {
+.allow-flip.player-black .a, .side-black .a {
     left: 700px;
 }
 
-.allow-flip.player-black .b {
+.allow-flip.player-black .b, .side-black .b {
     left: 600px;
 }
 
-.allow-flip.player-black .c {
+.allow-flip.player-black .c, .side-black .c {
     left: 500px;
 }
 
-.allow-flip.player-black .d {
+.allow-flip.player-black .d, .side-black .d {
     left: 400px;
 }
 
-.allow-flip.player-black .e {
+.allow-flip.player-black .e, .side-black .e {
     left: 300px;
 }
 
-.allow-flip.player-black .f {
+.allow-flip.player-black .f, .side-black .f {
     left: 200px;
 }
 
-.allow-flip.player-black .g {
+.allow-flip.player-black .g, .side-black .g {
     left: 100px;
 }
 
-.allow-flip.player-black .h {
+.allow-flip.player-black .h, .side-black .h {
     left: 0;
 }
 
-.allow-flip.player-black ._8 {
+.allow-flip.player-black ._, .side-black ._8 {
     top: 700px;
 }
 
-.allow-flip.player-black ._7 {
+.allow-flip.player-black ._, .side-black ._7 {
     top: 600px;
 }
 
-.allow-flip.player-black ._6 {
+.allow-flip.player-black ._, .side-black ._6 {
     top: 500px;
 }
 
-.allow-flip.player-black ._5 {
+.allow-flip.player-black ._, .side-black ._5 {
     top: 400px;
 }
 
-.allow-flip.player-black ._4 {
+.allow-flip.player-black ._, .side-black ._4 {
     top: 300px;
 }
 
-.allow-flip.player-black ._3 {
+.allow-flip.player-black ._, .side-black ._3 {
     top: 200px;
 }
 
-.allow-flip.player-black ._2 {
+.allow-flip.player-black ._, .side-black ._2 {
     top: 100px;
 }
 
-.allow-flip.player-black ._1 {
+.allow-flip.player-black ._, .side-black ._1 {
     top: 0;
 }

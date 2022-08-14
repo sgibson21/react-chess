@@ -1,0 +1,17 @@
+.info {
+    color: white;
+}
+
+.error {
+    color: red;
+}
+
+.msg {
+    width: 100%;
+    text-align: center;
+}
+
+.back:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}

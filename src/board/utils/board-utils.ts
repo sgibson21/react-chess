@@ -366,8 +366,9 @@ export const isValidMove = (file: file, rank: rank, state: BoardState) => {
 /**
  * describes if the board is in a state where a player can select an active square
  */
-export const readyForActiveSquareSelection = (file: file, rank: rank, state: BoardState) => {
-    return isOwnPiece(file, rank, state) &&
+export const readyForActiveSquareSelection = (file: file, rank: rank, state: BoardState, side?: pieceColor) => {
+    return (!side || state.playersTurn === side) &&
+        isOwnPiece(file, rank, state) &&
         !isActiveSq(file, rank, state) &&
         !state.promotionState;
 }
@@ -384,8 +385,10 @@ export const readyForActiveSquareSelection = (file: file, rank: rank, state: Boa
  *     ranks are rendered: 1 -> 8 (top to bottom)
  * 
  */
-export const getBoardRenderOrder: (playersTurn: pieceColor, flippedBoard?: boolean) => [file[], rank[]] = (playersTurn, flippedBoard = false) => {
-    return playersTurn === 'black' && flippedBoard ? [filesReversed, ranks] : [files, ranksReversed];
+export const getBoardRenderOrder: (playersTurn: pieceColor, allowFlip?: boolean, side?: pieceColor) => [file[], rank[]] = (playersTurn, allowFlip = false, side) => {
+    const whiteFacingOrder: [file[], rank[]] = [files, ranksReversed];
+    const blackFacingOrder: [file[], rank[]]  = [filesReversed, ranks];
+    return (playersTurn === 'black' && allowFlip) || side === 'black' ? blackFacingOrder : whiteFacingOrder;
 }
 
 /**
