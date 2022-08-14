@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { DraggablePiece } from './DraggablePiece';
-import { coord, file, pieceType, rank } from './types';
+import { coord, file, pieceColor, pieceType, rank } from './types';
 import { useDrop } from 'react-dnd';
 import { BoardState } from './utils/board-utils';
 import { isActiveSq } from './utils/board-utils';
@@ -12,15 +12,16 @@ export type OnPromotionCallback = (selection: promotionType, coord: coord | null
 
 type MovablePieceData = {
     piece: Piece;
+    boardState: BoardState;
+    side: pieceColor | undefined;
+    animate: boolean;
     onClick: (file: file, rank: rank) => void;
     onDragStart: (file: file, rank: rank) => void;
     onCapture: (pieceID: string) => void;
-    animate: boolean;
-    boardState: BoardState;
     onPromotion: OnPromotionCallback;
 };
 
-export const MovablePiece = ( {piece, onClick, onDragStart, onCapture, animate, boardState, onPromotion }: MovablePieceData) => {
+export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDragStart, onCapture, onPromotion }: MovablePieceData) => {
     
     const coord = useSelector((state: any) => {
         return state.pieceLocation[piece.id];
@@ -31,8 +32,16 @@ export const MovablePiece = ( {piece, onClick, onDragStart, onCapture, animate, 
         drop: () => onCapture(piece.id),
     }), [piece, onCapture, boardState]); // remember to add all dependencies
 
-    const whitePromotion = piece.type === PAWN && coord?.rank === 8;
-    const blackPromotion = piece.type === PAWN && coord?.rank === 1;
+    /**
+     * don't show the promotion window if it's not the current side's turn
+     * 
+     * TODO: ideally this info isnt sent over the socket but will do for now
+     *       This could be refactored into a util method, eg: showPreMoveOptions
+     */
+    const allowPromotionWindow = !side || side === boardState.playersTurn;
+
+    const whitePromotion = allowPromotionWindow && piece.type === PAWN && coord?.rank === 8;
+    const blackPromotion = allowPromotionWindow && piece.type === PAWN && coord?.rank === 1;
 
     const promotion = whitePromotion || blackPromotion;
 

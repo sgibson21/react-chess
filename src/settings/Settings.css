@@ -21,3 +21,12 @@
     color: white;
     background-color: rgba(0, 0, 0, .12);
 }
+
+form {
+    display: flex;
+}
+
+input {
+    margin-left: 20px;
+    font-size: 16pt;
+}
