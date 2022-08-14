@@ -44,7 +44,7 @@
 }
 
 /* The square itself is used as the boarder to prevent the pieces from being pushed about using actual boarders */
-.square.is-over, .square.is-over {
+.square.is-over {
     background-color:  #d9d9d9;
 }
 
@@ -125,3 +125,45 @@
 .bn { background-image: url('../assets/bn.png'); }
 .wp { background-image: url('../assets/wp.png'); }
 .bp { background-image: url('../assets/bp.png'); }
+
+@media screen and (max-width: 800px) {
+    .board {
+        width: 400px;
+    }
+
+    .square {
+        width: 50px;
+        height: 50px;
+    }
+
+    /* hover highlighting */
+    .square::after {
+        width: 40px;
+        height: 40px;
+        margin: 5px;
+    }
+
+    .available-indicator {
+        width: 15px;
+        height: 15px;
+        margin: 18px;
+    }
+    
+    .capture-indicator {
+        width: 50px;
+        height: 50px;
+        -webkit-mask: radial-gradient(transparent 18px, #000 0px);
+        mask: radial-gradient(transparent 18px, #000 0px);
+    }
+
+    .piece {
+        width: 50px;
+        height: 50px;
+        background-size: 50px;
+    }
+
+    .label {
+        padding: 2px;
+        font-size: 8pt;
+    }
+}
