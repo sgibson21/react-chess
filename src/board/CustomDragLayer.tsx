@@ -6,8 +6,6 @@ const layerStyles: CSSProperties = {
     position: 'fixed',
     pointerEvents: 'none',
     zIndex: 100,
-    display: 'inline-block',
-    cursor: 'grabbing',
 };
 
 function getItemStyles(currentOffset: XYCoord | null, containerRef: any) {
@@ -24,12 +22,14 @@ function getItemStyles(currentOffset: XYCoord | null, containerRef: any) {
     // so we subtract the {x,y} of the top left of the CustomDragLayer from the offset we are given from the dragDrop monitor
     const { x: containerX, y: containerY } = containerRef.current.getBoundingClientRect();
 
+    const squareCentreOffset = window.innerWidth < 800 ? 25 : 50;
+
     // take another 50px off each coord to center the piece in the square
-    const transform = `translate(${x - containerX - 50}px, ${y - containerY - 50}px)`
+    const transform = `translate(${x - containerX - squareCentreOffset}px, ${y - containerY - squareCentreOffset}px)`
     return {
       transform,
       WebkitTransform: transform,
-    }
+    };
   }
 
 export const CustomDragLayer = ({ activeSquare }: { activeSquare: SquareState | null }) => {
