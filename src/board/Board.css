@@ -106,10 +106,17 @@
     position: absolute;
     top: 0;
     background-size: 100px;
+}
+
+.grab {
     cursor: grab;
 }
 
-.piece:active {
+.grab:active {
+    cursor: grabbing;
+}
+
+.grabbing {
     cursor: grabbing;
 }
 

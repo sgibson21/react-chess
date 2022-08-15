@@ -28,7 +28,8 @@ export const Square = ({ square, isActive, isAvailable, firstFile, bottomRank, o
         sqColor,
         {
             'active': isActive,
-            'is-over': isOver
+            'is-over': isOver,
+            'grabbing': isOver
         }
     );
 

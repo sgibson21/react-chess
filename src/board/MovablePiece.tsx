@@ -1,7 +1,7 @@
 import { useSelector } from 'react-redux';
 import { DraggablePiece } from './DraggablePiece';
 import { coord, file, pieceColor, pieceType, rank } from './types';
-import { useDrop } from 'react-dnd';
+import { useDragLayer, useDrop } from 'react-dnd';
 import { BoardState } from './utils/board-utils';
 import { isActiveSq } from './utils/board-utils';
 import { Piece, PAWN } from './utils/piece-utils';
@@ -32,6 +32,10 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
         drop: () => onCapture(piece.id),
     }), [piece, onCapture, boardState]); // remember to add all dependencies
 
+    const { isDragging } = useDragLayer(monitor => ({
+        isDragging: monitor.isDragging()
+    }));
+
     /**
      * don't show the promotion window if it's not the current side's turn
      * 
@@ -48,7 +52,7 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
     return (
         <div
             ref={drop}
-            className={`grid-piece ${coord?.file} _${coord?.rank} ${ animate && !promotion ? 'animate' : '' }`}
+            className={`grid-piece ${coord?.file} _${coord?.rank} ${ animate && !promotion ? 'animate' : '' } ${isDragging ? 'grabbing' : 'grab' }`}
         >
             {
                 whitePromotion &&

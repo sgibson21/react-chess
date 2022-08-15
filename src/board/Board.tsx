@@ -14,9 +14,9 @@ import {
 import { SquareState } from './utils/square-utils';
 import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import useHistory from './hooks/useHistory';
 import classNames from 'classnames';
+import { TouchBackend } from 'react-dnd-touch-backend';
 
 export type BoardOptions = {
 
@@ -163,7 +163,7 @@ export const Board = ({boardState, makeMove, options = defaultBoardOptions}: Boa
     const showPieceOptions = !side || side === boardState.playersTurn;
 
     return (
-        <DndProvider backend={HTML5Backend}>
+        <DndProvider backend={TouchBackend} options={{ enableMouseEvents: true }}>
             <div className={`board player-${boardState.playersTurn} ${boardClassNames}`}>
                 <CustomDragLayer activeSquare={getActiveSquare(boardState)}/>
                 {
