@@ -1,5 +1,6 @@
 .settings {
-    width: 600px;
+    width: 35%;
+    min-width: 300px;
     background-color: rgb(39 37 34);
     margin: 0 auto;
     padding: 20px 40px;

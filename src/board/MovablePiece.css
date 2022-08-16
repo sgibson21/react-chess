@@ -318,3 +318,140 @@
     }
     
 }
+
+@media screen and (max-width: 400px) {
+    .promotion-select {
+        width: 40px;
+    }
+
+    .promotion-select.ps-black {
+        top: -140px;
+    }
+
+    .promotion-select .close {
+        height: 20px;
+    }
+
+    .close-icon {
+        margin: 2px 12px;
+    }
+
+    .b {
+        left: 40px;
+    }
+    
+    .c {
+        left: 80px;
+    }
+    
+    .d {
+        left: 120px;
+    }
+    
+    .e {
+        left: 160px;
+    }
+    
+    .f {
+        left: 200px;
+    }
+    
+    .g {
+        left: 240px;
+    }
+    
+    .h {
+        left: 280px;
+    }
+    
+    ._7 {
+        top: 40px;
+    }
+    
+    ._6 {
+        top: 80px;
+    }
+    
+    ._5 {
+        top: 120px;
+    }
+    
+    ._4 {
+        top: 160px;
+    }
+    
+    ._3 {
+        top: 200px;
+    }
+    
+    ._2 {
+        top: 240px;
+    }
+    
+    ._1 {
+        top: 280px;
+    }
+    
+    /* 
+     Positions are flipped for one of two reasons:
+        - we are allowing board flips AND it's black's turn
+        - it's an online game and we're on black's side
+    */
+    
+    .allow-flip.player-black .a, .side-black .a {
+        left: 280px;
+    }
+    
+    .allow-flip.player-black .b, .side-black .b {
+        left: 240px;
+    }
+    
+    .allow-flip.player-black .c, .side-black .c {
+        left: 200px;
+    }
+    
+    .allow-flip.player-black .d, .side-black .d {
+        left: 160px;
+    }
+    
+    .allow-flip.player-black .e, .side-black .e {
+        left: 1200px;
+    }
+    
+    .allow-flip.player-black .f, .side-black .f {
+        left: 80px;
+    }
+    
+    .allow-flip.player-black .g, .side-black .g {
+        left: 40px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._8 {
+        top: 280px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._7 {
+        top: 240px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._6 {
+        top: 200px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._5 {
+        top: 160px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._4 {
+        top: 120px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._3 {
+        top: 80px;
+    }
+    
+    .allow-flip.player-black ._, .side-black ._2 {
+        top: 40px;
+    }
+    
+}

@@ -174,3 +174,45 @@
         font-size: 8pt;
     }
 }
+
+@media screen and (max-width: 400px) {
+    .board {
+        width: 320px;
+    }
+
+    .square {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* hover highlighting */
+    .square::after {
+        width: 30px;
+        height: 30px;
+        margin: 5px;
+    }
+
+    .available-indicator {
+        width: 11px;
+        height: 11px;
+        margin: 15px;
+    }
+    
+    .capture-indicator {
+        width: 40px;
+        height: 40px;
+        -webkit-mask: radial-gradient(transparent 15px, #000 0px);
+        mask: radial-gradient(transparent 15px, #000 0px);
+    }
+
+    .piece {
+        width: 40px;
+        height: 40px;
+        background-size: 40px;
+    }
+
+    .label {
+        padding: 1px;
+        font-size: 6pt;
+    }
+}
