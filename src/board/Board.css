@@ -43,7 +43,7 @@
     background-color: #769656;
 }
 
-/* The square itself is used as the boarder to prevent the pieces from being pushed about using actual boarders */
+/* The square itself is used as the border to prevent the pieces from being pushed about using actual borders */
 .square.is-over {
     background-color:  #d9d9d9;
 }

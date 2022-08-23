@@ -7,6 +7,7 @@ import { isActiveSq } from './utils/board-utils';
 import { Piece, PAWN } from './utils/piece-utils';
 import './MovablePiece.css';
 import PromotionSelect, { promotionType } from './PromotionSelect';
+import classNames from 'classnames';
 
 export type OnPromotionCallback = (selection: promotionType, coord: coord | null) => void;
 
@@ -36,6 +37,10 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
         isDragging: monitor.isDragging()
     }));
 
+    if (!coord) {
+        return <></>;
+    }
+
     /**
      * don't show the promotion window if it's not the current side's turn
      * 
@@ -44,16 +49,25 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
      */
     const allowPromotionWindow = !side || side === boardState.playersTurn;
 
-    const whitePromotion = allowPromotionWindow && piece.type === PAWN && coord?.rank === 8;
-    const blackPromotion = allowPromotionWindow && piece.type === PAWN && coord?.rank === 1;
+    const whitePromotion = allowPromotionWindow && piece.type === PAWN && coord.rank === 8;
+    const blackPromotion = allowPromotionWindow && piece.type === PAWN && coord.rank === 1;
 
     const promotion = whitePromotion || blackPromotion;
 
+    const gridPieceClassNames: string = classNames(
+        `grid-piece`,
+        `_${coord.rank}`,
+        coord.file,
+        {
+            'animate': animate && !promotion,
+            'grabbing': isDragging,
+            'grab': !isDragging,
+            'stop-pointer-events': isDragging
+        }
+    );
+
     return (
-        <div
-            ref={drop}
-            className={`grid-piece ${coord?.file} _${coord?.rank} ${ animate && !promotion ? 'animate' : '' } ${isDragging ? 'grabbing' : 'grab' }`}
-        >
+        <div ref={drop} className={gridPieceClassNames}>
             {
                 whitePromotion &&
                 <PromotionSelect color={'white'} onClick={(type: pieceType | 'cancel') => onPromotion(type, coord)}/>
@@ -66,13 +80,13 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
 
             {
                 !promotion &&
-                <div onClick={() => onClick(coord?.file, coord?.rank)}>
+                <div onClick={() => onClick(coord.file, coord.rank)}>
                     <DraggablePiece
                         piece={piece}
-                        file={coord?.file}
-                        rank={coord?.rank}
+                        file={coord.file}
+                        rank={coord.rank}
                         onDragStart={onDragStart}
-                        isActive={isActiveSq(coord?.file, coord?.rank, boardState)}
+                        isActive={isActiveSq(coord.file, coord.rank, boardState)}
                     />
                 </div>
             }

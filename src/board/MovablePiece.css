@@ -2,6 +2,10 @@
     position: absolute;
 }
 
+.stop-pointer-events {
+    pointer-events: none;
+}
+
 /* don't animate the pieces when the board is being flipped between turns */
 .board:not(.allow-flip) .animate {
     transition: top 0.2s, left 0.2s;
