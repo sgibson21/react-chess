@@ -26,6 +26,11 @@ function App() {
     setIsMate(isMate);
   };
 
+  const reset = () => {
+    setGameType(null);
+    setIsMate(false);
+  };
+
   const options: BoardOptions = {
     allowFlip: gameType === GameType.local
   };
@@ -33,7 +38,7 @@ function App() {
   return (
     <Provider store={store}>
       <div className="App">
-        <h1 onClick={() => setGameType(null)}>React Chess</h1>
+        <h1 onClick={() => reset()}>React Chess</h1>
         {
           !gameType && <Settings onClick={onOptionSelect} />
         }
@@ -41,7 +46,7 @@ function App() {
           !!gameType && gameType !== GameType.online && board && <Board boardState={board} makeMove={makeMove} options={options} />
         }
         {
-          gameType === GameType.online && <OnlineGame onBack={() =>setGameType(null)} />
+          gameType === GameType.online && <OnlineGame onBack={() => reset()} />
         }
         {
           board && isMate && <CheckmateModal winner={board.playersTurn === 'white' ? 'black' : 'white'} onClose={() => setIsMate(false)} onNewGame={() => {}} onMainMenu={() => {}}/>
