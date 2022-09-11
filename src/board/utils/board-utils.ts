@@ -135,6 +135,30 @@ export const isInCheck = (state: BoardState) => {
     return !!kingSq && isAttacked(state, getCoordinates(kingSq));
 }
 
+export const isCheckmate: (state: BoardState) => boolean = (state: BoardState) => {
+    if (isInCheck(state)) {
+        // check all current players pieces to see if any moves are available
+        const squares: SquareState[] = [];
+            // get all squares with correct coloured pieces
+            files.forEach(file => {
+                ranks.forEach(rank => {
+                    const square = state.squares[file][rank];
+                    if (square && square.piece && square.piece.color === state.playersTurn) {
+                        squares.push(square);
+                    }
+                });
+            });
+
+            // getPieceMovement of each square
+            const squareWithValidMove = squares.find(sq => getPieceMovement(state, sq).length > 0)
+
+            // return true if no moves found
+            return !squareWithValidMove;
+    }
+
+    return false;
+}
+
 export const getPlayingColor: (state: BoardState) => pieceColor = (state: BoardState) => {
     return state.playersTurn;
 }

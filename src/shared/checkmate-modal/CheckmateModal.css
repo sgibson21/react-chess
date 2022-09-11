@@ -1,0 +1,56 @@
+.modal-body {
+    padding: 20px;
+}
+
+.close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 2px 6px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkmate-modal {
+    position: absolute;
+    top: 15%;
+    left: calc(50% - 180px);
+    width: 360px;
+    background-color: white;
+    border: 1px solid grey;
+    border-radius: 5px;
+    box-shadow: 0px 0px 15px 0px #565656;
+    box-sizing: border-box;
+    text-align: center;
+    color: #769656;
+}
+
+.checkmate-modal .options {
+    margin-top: 40px;
+    padding: 40px;
+}
+
+.checkmate-modal .options button {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #769656;
+    color: white;
+    border: 1px solid #eeeed2;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.checkmate-modal .options button:hover {
+    background-color: #8bb141;
+}
+
+@media screen and (max-width: 400px) {
+    .checkmate-modal {
+        width: 90%;
+        left: 5%;
+        min-width: 260px;
+    }
+}
