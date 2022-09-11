@@ -16,6 +16,7 @@ function App() {
   const [isMate, setIsMate] = useState(false);
 
   const onOptionSelect = (option: GameType) => {
+    setBoard(loadPositionFromFen(START_FEN, initBoard()));
     setIsMate(false);
     setGameType(option);
   };
