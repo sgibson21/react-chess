@@ -16,7 +16,7 @@ function App() {
   const [isMate, setIsMate] = useState(false);
 
   const onOptionSelect = (option: GameType) => {
-    setBoard(loadPositionFromFen(START_FEN, initBoard()));
+    setIsMate(false);
     setGameType(option);
   };
 
@@ -26,7 +26,7 @@ function App() {
     setIsMate(isMate);
   };
 
-  const reset = () => {
+  const mainMenu = () => {
     setGameType(null);
     setIsMate(false);
   };
@@ -38,7 +38,7 @@ function App() {
   return (
     <Provider store={store}>
       <div className="App">
-        <h1 onClick={() => reset()}>React Chess</h1>
+        <h1 onClick={() => mainMenu()}>React Chess</h1>
         {
           !gameType && <Settings onClick={onOptionSelect} />
         }
@@ -46,10 +46,15 @@ function App() {
           !!gameType && gameType !== GameType.online && board && <Board boardState={board} makeMove={makeMove} options={options} />
         }
         {
-          gameType === GameType.online && <OnlineGame onBack={() => reset()} />
+          gameType === GameType.online && <OnlineGame onBack={() => mainMenu()} />
         }
         {
-          board && isMate && <CheckmateModal winner={board.playersTurn === 'white' ? 'black' : 'white'} onClose={() => setIsMate(false)} onNewGame={() => {}} onMainMenu={() => {}}/>
+          board && isMate && <CheckmateModal
+            winner={board.playersTurn === 'white' ? 'black' : 'white'}
+            onClose={() => setIsMate(false)}
+            onNewGame={() => gameType && onOptionSelect(gameType)}
+            onMainMenu={() => mainMenu()}
+          />
         }
       </div>
     </Provider>

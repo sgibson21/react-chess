@@ -15,8 +15,8 @@ export const CheckmateModal = ({ winner, onClose, onNewGame, onMainMenu }: Check
             <div className='modal-body'>
                 <h2>{winner.charAt(0).toUpperCase() + winner.slice(1)} Wins!</h2>
                 <div className='options'>
-                    <button>New Game</button>
-                    <button>Main Menu</button>
+                    <button onClick={() => onNewGame()}>New Game</button>
+                    <button onClick={() => onMainMenu()}>Main Menu</button>
                 </div>
             </div>
         </div>
