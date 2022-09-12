@@ -1,4 +1,4 @@
-import { BoardState } from './board-utils';
+import { BoardState, isCastlingAvailable } from './board-utils';
 import {
     getEnPassantCaptureSq,
     getEnPassantPieceSq,
@@ -144,8 +144,9 @@ const kingMovement: (boardState: BoardState, square: SquareState) => SquareState
         }
     });
 
-    // castling - king hasnt moved, path to rook is clear and not in line of sight of attacking piece, rook hasnt moved
-    if (square.piece && !square.piece.hasMoved) {
+    // castling - path to rook is clear, not in line of sight of attacking piece and castling is available
+    const [kingSideAvailable, queenSideAvailable] = isCastlingAvailable(square.piece?.color, boardState);
+    if (square.piece && (kingSideAvailable || queenSideAvailable)) {
         // short castling is always towards the h file, long towards the a file
         const pathToRookShort = getRookPath(boardState, square, 1, false);
         const pathToRookLong = getRookPath(boardState, square, -1, false);
@@ -156,7 +157,7 @@ const kingMovement: (boardState: BoardState, square: SquareState) => SquareState
         if (rookAtShortCoord) {
             const rookAtShortSq = getSquare(rookAtShortCoord.file, rookAtShortCoord.rank, boardState);
 
-            if (pathToRookShort.length === 2 && rookAtShortSq.piece && !rookAtShortSq.piece?.hasMoved) {
+            if (pathToRookShort.length === 2 && rookAtShortSq.piece && kingSideAvailable) {
 
                 // path to king's final position should not be in the line of sight of an attacking piece
                 const pathInCheck: boolean = simulateMove({
@@ -177,7 +178,7 @@ const kingMovement: (boardState: BoardState, square: SquareState) => SquareState
         if (rookAtLongCoord) {
             const rookAtLongSq = getSquare(rookAtLongCoord.file, rookAtLongCoord.rank, boardState);
 
-            if (pathToRookLong.length === 3 && rookAtLongSq.piece && !rookAtLongSq.piece.hasMoved) {
+            if (pathToRookLong.length === 3 && rookAtLongSq.piece && queenSideAvailable) {
 
                 // path to king's final position should not be in the line of sight of an attacking piece
                 const pathInCheck: boolean = simulateMove({

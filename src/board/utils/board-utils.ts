@@ -11,7 +11,7 @@ export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const filesReversed: file[] = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
 export const ranksReversed: rank[] = [8, 7, 6, 5, 4, 3, 2, 1];
-export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq';
 
 export type BoardState = {
     squares: boardSquaresState;
@@ -20,6 +20,7 @@ export type BoardState = {
     activeSq: SquareState | null;
     availableSquares: SquareState[];
     playersTurn: pieceColor;
+    castling: string;
     enPassantState: enPassantState | undefined;
     promotionState: coord | undefined;
 };
@@ -35,6 +36,8 @@ type boardSquaresState = {
         [rank: number]: SquareState
     }
 }
+
+type castlingSymbol = 'K' | 'Q' | 'k' | 'q';
 
 type capture = {
     piece: Piece;
@@ -54,8 +57,12 @@ type move = {
 
     /**
      * optional callback used to reverse piece state: ie set hasMoved back to false
+     * 
+     * TODO: Now that we're trying to represent the full state using a fen string,
+     * we can implement history with fen strings and do away with a reverse function
+     *   
      */
-    reverse?: () => void;
+    reverse?: (board: BoardState) => BoardState;
 };
 
 type enPassantState = {
@@ -181,7 +188,7 @@ export const back: (state: BoardState) => BoardState = (state: BoardState) => {
     if (state.undoHistory.length > 0 && !state.promotionState) {
         state = clearActiveSq(state);
         const movesToUndo = getMovesToUndo(state);
-        makeHistoryMovesBackwards(movesToUndo, state);
+        state = makeHistoryMovesBackwards(movesToUndo, state);
         state.redoHistory.push(movesToUndo);
         state = switchPlayer(state);
     }
@@ -214,7 +221,7 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
 
     const returnValue = callback(state);
 
-    // undo move
+    // undo move - returned state not used
     makeHistoryMoveBackwards({
         from: move.from,
         to: move.to,
@@ -234,7 +241,9 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
     if (isValidMove(to.file, to.rank, state)) {
 
         // move piece to new square
-        const moves = movePiece(to, state);
+        const [moves, castlingAvailability] = movePiece(to, state);
+
+        state.castling = castlingAvailability;
 
         if (moves.length > 0) {
 
@@ -273,7 +282,7 @@ export const cancelPromotion = (state: BoardState) => {
     // go back without switching player or adding the undone move to the redo list
     state = clearActiveSq(state);
     const movesToUndo = getMovesToUndo(state);
-    makeHistoryMovesBackwards(movesToUndo, state);
+    state = makeHistoryMovesBackwards(movesToUndo, state);
 
     return state;
 }
@@ -302,6 +311,7 @@ export const initBoard: () => BoardState = () => {
         availableSquares: [],
         enPassantState: undefined,
         playersTurn: 'white',
+        castling: 'KQkq',
         redoHistory: [],
         undoHistory: [],
         promotionState: undefined
@@ -345,7 +355,57 @@ export const loadPositionFromFen: (fen: string, state: BoardState) => BoardState
 
     state = loadFenPieces(piecesFen, state);
 
+    state.playersTurn = activeColor === 'w' ? 'white' : 'black';
+
+    state.castling = castling;
+
     return state;
+}
+
+/**
+ * @returns [kingSide: boolean, queenSide: boolean]
+ */
+export const isCastlingAvailable: (pieceColor: pieceColor | undefined, board: BoardState) => [boolean, boolean] = (pieceColor: pieceColor | undefined, board: BoardState) => {
+    if (board && board.castling && pieceColor === 'white') {
+        return [board.castling.includes('K'), board.castling.includes('Q')];
+    } else if (board && board.castling && pieceColor === 'black') {
+        return [board.castling.includes('k'), board.castling.includes('q')];
+    } else {
+        return [false, false];
+    }
+}
+
+/**
+ * "K" - White can castle kingside
+ * "Q" - White can castle queenside
+ * "k" - Black can castle kingside
+ * "q" - Black can castle queenside
+ *
+ * If neither side has the ability to castle, the castlingAvailability field uses the character "-".
+ */
+const revokeCastlingRights: (castlingAvailability: string, symbols: castlingSymbol[]) => string = (castlingAvailability: string, symbols: castlingSymbol[]) => {
+    if (castlingAvailability && symbols && symbols.length > 0) {
+        symbols.forEach(symbol => castlingAvailability = castlingAvailability.replace(symbol, ''));
+    }
+
+    if (castlingAvailability.length === 0) {
+        castlingAvailability = '-';
+    }
+
+    return castlingAvailability;
+}
+
+const reinstateCastlingRights: (castlingAvailability: string, symbols: castlingSymbol[]) => string = (castlingAvailability: string, symbols: castlingSymbol[]) => {
+    // remove dash if necessary
+    if (symbols && symbols.length > 0 && castlingAvailability === '-') {
+        castlingAvailability = '';
+    }
+    
+    if (symbols && symbols.length > 0) {
+        castlingAvailability = castlingAvailability.concat(...symbols);
+    }
+
+    return castlingAvailability;
 }
 
 const loadFenPieces: (piecesFen: string, state: BoardState) => BoardState = (piecesFen: string, state: BoardState) => {
@@ -384,7 +444,7 @@ const loadFenPieces: (piecesFen: string, state: BoardState) => BoardState = (pie
     unidentifiedPieces.forEach((up, index) => addPiece({...up.piece, id: index.toString()}, up.file, up.rank, state));
 
     return state;
-};
+}
 
 /**
  * Gets the coordinate { file, rank } of the square [fileCount] and [rankCount] away from the given square
@@ -395,7 +455,7 @@ export const getSquareFrom = (fromFile: file, fileCount: number, fromRank: rank,
     if (file && rank) {
         return { file, rank };
     }
- }
+}
 
 /**
  * Gets the file that is [count] many files from the file provided
@@ -516,7 +576,8 @@ const changePiece: (coord: coord, newType: pieceType, state: BoardState) => Piec
 /**
  * moves a piece to -> from without checking if it is legal etc
  */
-const makeHistoryMoveBackwards: (move: move, state: BoardState) => void = (move: move, state: BoardState) => {
+const makeHistoryMoveBackwards: (move: move, state: BoardState) => BoardState = (move: move, state: BoardState) => {
+    state = {...state};
     // destructure here because we may need to update the pieceType on move.promotion
     const {from, to, capture, promotion, reverse} = move;
     const fromSq = getSquare(to.file, to.rank, state);
@@ -539,12 +600,16 @@ const makeHistoryMoveBackwards: (move: move, state: BoardState) => void = (move:
 
     // run the reverse callback if there is one
     if (reverse) {
-        reverse(); // TODO: cant store a function in the move
+        state = reverse(state);
     }
+
+    return state;
 }
 
-const makeHistoryMovesBackwards: (moves: move[], state: BoardState) => void = (moves: move[], state: BoardState) => {
-    moves.forEach(move => makeHistoryMoveBackwards(move, state));
+const makeHistoryMovesBackwards: (moves: move[], state: BoardState) => BoardState = (moves: move[], state: BoardState) => {
+    state = {...state};
+    moves.forEach(move => state = makeHistoryMoveBackwards(move, state));
+    return state;
 }
 
 /**
@@ -681,14 +746,15 @@ const capturePieceByEnPassant: (state: BoardState) => capture | undefined = (sta
 }
 
 /**
- * @returns a list of moves that were made
+ * @returns a list of moves that were made and the new castling availability
  * 
  * TODO: should a capture just be a move from the square -> to OFF the board and into the players stash?
  * 
  */
-const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: BoardState) => {
+const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord, state: BoardState) => {
     let pieceToMove: Piece | undefined;
     const moves: move[] = [];
+    let castlingAvailability = state.castling;
     const fromSq = state.activeSq;
     const toSq = state.squares[to.file][to.rank];
     const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
@@ -735,6 +801,18 @@ const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: B
         // castling - if moving a king more than 1 space
         if (fromSq.piece.type === 'king' && distanceBetweenFiles(fromSq.file, toSq.file) > 1) {
 
+            const documentCastlingState = (move: move, symbolToRevoke: castlingSymbol) => {
+                if (castlingAvailability.includes(symbolToRevoke)) {
+                    castlingAvailability = revokeCastlingRights(castlingAvailability, [symbolToRevoke]);
+                    // add reverse function to reinstate castling availability to the move
+                    move.reverse = (state: BoardState) => {
+                        state.castling = reinstateCastlingRights(castlingAvailability, [symbolToRevoke]);
+                        return state;
+                    };
+                }
+                return move;
+            }
+
             // move rook to other side of king
             if (fromSq.file < toSq.file) {
                 // short castling
@@ -743,10 +821,15 @@ const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: B
                     const rook = liftSquarePiece(rookSq, state);
                     setPieceOn(rook, getSquare('f', fromSq.rank, state));
 
-                    moves.push({
+                    let move: move = {
                         from: {file: 'h', rank: fromSq.rank},
                         to: {file: 'f', rank: fromSq.rank}
-                    });
+                    };
+
+                    const symbolToRevoke: castlingSymbol = fromSq.piece.color === 'white' ? 'K' : 'k';
+                    move = documentCastlingState(move, symbolToRevoke);
+
+                    moves.push(move);
                 }
             } else {
                 // long castling
@@ -755,10 +838,15 @@ const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: B
                     const rook = liftSquarePiece(rookSq, state);
                     setPieceOn(rook, getSquare('d', fromSq.rank, state));
 
-                    moves.push({
+                    let move: move = {
                         from: {file: 'a', rank: fromSq.rank},
                         to: {file: 'd', rank: fromSq.rank}
-                    });
+                    };
+
+                    const symbolToRevoke: castlingSymbol = fromSq.piece.color === 'white' ? 'Q' : 'q';
+                    move = documentCastlingState(move, symbolToRevoke);
+                    
+                    moves.push(move);
                 }
             }
         }
@@ -771,15 +859,6 @@ const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: B
 
     // If a move was made
     if (fromSq && pieceToMove && moves.length > 0) {
-        // TODO: need a new way to reverse the hasMoved flag.
-        //       maybe store in a new property of the move state: {firstMove: boolean}
-        if (!pieceToMove.hasMoved) {
-            // set the has moved flag on the piece
-            pieceToMove.hasMoved = true;
-            // add a cleanup callback for reversing the state of the piece
-            moves[0].reverse = () => (pieceToMove as Piece).hasMoved = false
-        }
-
         // clear and set new en passant state
         state.enPassantState = getEnPassantState(fromSq, toSq, pieceToMove, state);
 
@@ -787,7 +866,7 @@ const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: B
         state.promotionState = promotion ? getCoordinates(toSq) : undefined;
     }
 
-    return moves;
+    return [moves, castlingAvailability];
 }
 
 const liftSquarePiece: (coord: coord, board: BoardState) => Piece | undefined = ({file, rank}: coord, board: BoardState) => {

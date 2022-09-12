@@ -7,7 +7,6 @@ export type UnidentifiedPiece = {
     type: pieceType;
     imgClass: pieceImgKey;
     points: piecePoints;
-    hasMoved: boolean;
 };
 
 export interface Piece extends UnidentifiedPiece {
@@ -50,5 +49,5 @@ const pieceTypePointsMap = {
 export const getPiece: (color: pieceColor, type: pieceType) => UnidentifiedPiece = (color: pieceColor, type: pieceType) => {
     const imgClass = pieceColorSymbolMap[color] + pieceTypeSymbolMap[type] as pieceImgKey;
     const points = pieceTypePointsMap[type] as piecePoints;
-    return { color, type, imgClass, points, hasMoved: false };
+    return { color, type, imgClass, points };
 }
