@@ -21,7 +21,7 @@ export type BoardState = {
     availableSquares: SquareState[];
     playersTurn: pieceColor;
     castling: string;
-    enPassantState: coord | undefined; // square that the pawn to be captured skipped, on it's first move
+    enPassantCoord: coord | undefined; // square that the pawn to be captured skipped, on it's first move
     promotionState: coord | undefined;
 };
 
@@ -163,15 +163,15 @@ export const getPlayingDirection: (state: BoardState) => 1 | -1 = (state: BoardS
 }
 
 export const getEnPassantCaptureSq: (state: BoardState) => coord | false = (state: BoardState) => {
-    return !!state.enPassantState && state.enPassantState;
+    return !!state.enPassantCoord && state.enPassantCoord;
 }
 
 export const getEnPassantPieceCoord: (state: BoardState) => coord | false = (state: BoardState) => {
-    if (state.enPassantState) {
+    if (state.enPassantCoord) {
         return getSquareFrom(
-            state.enPassantState.file, 
+            state.enPassantCoord.file, 
             0,
-            state.enPassantState.rank,
+            state.enPassantCoord.rank,
             getPlayingDirection(state) * -1 // reverse the direction: if it's white's turn then look further down the board
         ) || false;
     }
@@ -306,7 +306,7 @@ export const initBoard: () => BoardState = () => {
         squares: initSquares(),
         activeSq: null,
         availableSquares: [],
-        enPassantState: undefined,
+        enPassantCoord: undefined,
         playersTurn: 'white',
         castling: 'KQkq',
         redoHistory: [],
@@ -355,6 +355,9 @@ export const loadPositionFromFen: (fen: string, state: BoardState) => BoardState
     state.playersTurn = activeColor === 'w' ? 'white' : 'black';
 
     state.castling = castling;
+
+    const [file, rank] = enPassant.split('');
+    state.enPassantCoord = {file: file as file, rank: +rank as rank};
 
     return state;
 }
@@ -726,7 +729,7 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
     const toSq = state.squares[to.file][to.rank];
     const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
     const enPassantPieceCoord: coord | false = getEnPassantPieceCoord(state);
-    const enPassantState = state.enPassantState; // TODO: this is here to allow a reference in the reverse closure
+    const enPassantState = state.enPassantCoord; // TODO: this is here to allow a reference in the reverse closure
 
     if (!fromSq) {
         return [moves, castlingAvailability];
@@ -746,7 +749,7 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
             reverse: captureSquare === toSq ? undefined : (board) => {
                 // TODO: this only works for undoing a single move - need to move to fen based history implementation
                 if (enPassantState) {
-                    board.enPassantState = enPassantState
+                    board.enPassantCoord = enPassantState
                 }
                 return board;
             }
@@ -759,8 +762,8 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
     }
     // capturing by en passant
     else if (
-        toSq && state.enPassantState && enPassantPieceCoord &&
-        compareSquareCoords(toSq, state.enPassantState) &&
+        toSq && state.enPassantCoord && enPassantPieceCoord &&
+        compareSquareCoords(toSq, state.enPassantCoord) &&
         !compareSquarePieceColor(fromSq, getSquare(enPassantPieceCoord.file, enPassantPieceCoord.rank, state))
     ) {
         makeCaptureMove(
@@ -839,7 +842,7 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
     // If a move was made
     if (pieceToMove && moves.length > 0) {
         // clear and set new en passant state
-        state.enPassantState = getEnPassantState(fromSq, toSq, pieceToMove);
+        state.enPassantCoord = getEnPassantState(fromSq, toSq, pieceToMove);
 
         // clear and set new promotion state
         state.promotionState = promotion ? getCoordinates(toSq) : undefined;
