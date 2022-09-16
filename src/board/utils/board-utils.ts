@@ -744,6 +744,7 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
             capture,
             promotion,
             reverse: captureSquare === toSq ? undefined : (board) => {
+                // TODO: this only works for undoing a single move - need to move to fen based history implementation
                 if (enPassantState) {
                     board.enPassantState = enPassantState
                 }
