@@ -1,10 +1,11 @@
-import { BoardState, isCastlingAvailable } from './board-utils';
 import {
+    BoardState,
+    getEnPassantPieceCoord,
     getEnPassantCaptureSq,
-    getEnPassantPieceSq,
     getPlayingDirection,
     getSquare,
     isInCheck,
+    isCastlingAvailable,
     simulateMove,
     getFileFrom,
     getSquareFrom,
@@ -63,8 +64,6 @@ const pawnMovement: (boardState: BoardState, fromSquare: SquareState) => SquareS
 
     // en passant
     movements.push(...getEnPassant(boardState, fromSquare));
-
-    // TODO: queening
     
     return movements;
 }
@@ -238,7 +237,7 @@ const getEnPassant: (boardState: BoardState, fromSquare: SquareState) => SquareS
     const movements: SquareState[] = [];
 
     const enPassantCaptureSq = getEnPassantCaptureSq(boardState);
-    const enPassantPieceSq = getEnPassantPieceSq(boardState);
+    const enPassantPieceSq = getEnPassantPieceCoord(boardState);
 
     // if the capturing piece is on the same rank as the en passant piece square
     if (enPassantCaptureSq && enPassantPieceSq && fromSquare.rank === enPassantPieceSq.rank) {

@@ -67,11 +67,6 @@ type move = {
 
 type enPassantState = {
     /**
-     * square that the pawn to be captured moved to
-     */
-    pieceSquare: coord;
-
-    /**
      * square that the pawn to be captured skipped, on it's first move
      */
     captureSquare: coord;
@@ -178,8 +173,17 @@ export const getEnPassantCaptureSq: (state: BoardState) => coord | false = (stat
     return !!state.enPassantState && state.enPassantState.captureSquare;
 }
 
-export const getEnPassantPieceSq: (state: BoardState) => coord | false = (state: BoardState) => {
-    return !!state.enPassantState && state.enPassantState.pieceSquare;
+export const getEnPassantPieceCoord: (state: BoardState) => coord | false = (state: BoardState) => {
+    if (state.enPassantState?.captureSquare) {
+        return getSquareFrom(
+            state.enPassantState.captureSquare.file, 
+            0,
+            state.enPassantState.captureSquare.rank,
+            getPlayingDirection(state) * -1 // reverse the direction: if it's white's turn then look further down the board
+        ) || false;
+    }
+
+    return false;
 }
 
 export const back: (state: BoardState) => BoardState = (state: BoardState) => {
@@ -678,7 +682,7 @@ const compareSquarePieceColor: (sq1: SquareState, sq2: SquareState) => boolean =
 /**
  * gets any en passant state if a pawn has been moved 2 squares
  */
-const getEnPassantState: (fromSq: coord, toSq: coord, pieceToMove: Piece, state: BoardState) => enPassantState | undefined = (fromSq: coord, toSq: coord, pieceToMove: Piece, state: BoardState) => {
+const getEnPassantState: (fromSq: coord, toSq: coord, pieceToMove: Piece) => enPassantState | undefined = (fromSq: coord, toSq: coord, pieceToMove: Piece) => {
     // if the piece is a pawn and has moved 2 squares
     if (pieceToMove.type === 'pawn' && Math.abs(fromSq.rank - toSq.rank) === 2) {
         // get square to be marked
@@ -686,10 +690,6 @@ const getEnPassantState: (fromSq: coord, toSq: coord, pieceToMove: Piece, state:
             captureSquare: { // capture square is where the pawn can be captured
                 file: fromSq.file,
                 rank: (fromSq.rank + toSq.rank) / 2 as rank // average of the 'from' and 'to' ranks will be the middle rank
-            },
-            pieceSquare: { // piece square is where the piece was moved to
-                file: toSq.file,
-                rank: toSq.rank
             }
         };
     }
@@ -722,30 +722,6 @@ const capturePiece: (square: SquareState, state: BoardState) => capture | undefi
 }
 
 /**
- * Captures piece as defined by the en passant state
- */
-const capturePieceByEnPassant: (state: BoardState) => capture | undefined = (state: BoardState) => {
-    if (state.enPassantState?.pieceSquare) {
-
-        // lift piece to be taken
-        const sq = getSquare(state.enPassantState.pieceSquare.file, state.enPassantState.pieceSquare.rank, state);
-        const capturedPice = liftSquarePiece(sq, state);
-
-        if (capturedPice) {
-
-            // add captured piece to current players stash
-            // TODO
-
-            return {
-                piece: capturedPice,
-                coord: getCoordinates(sq)
-            };
-        }
-
-    }
-}
-
-/**
  * @returns a list of moves that were made and the new castling availability
  * 
  * TODO: should a capture just be a move from the square -> to OFF the board and into the players stash?
@@ -758,10 +734,15 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
     const fromSq = state.activeSq;
     const toSq = state.squares[to.file][to.rank];
     const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
+    const enPassantPieceCoord: coord | false = getEnPassantPieceCoord(state);
 
-    // capturing a piece
-    if (fromSq && fromSq.piece && toSq && toSq.piece && !compareSquarePieceColor(fromSq, toSq)) {
-        const capture = capturePiece(toSq, state); // capture the piece before you set down the taking piece
+    if (!fromSq) {
+        return [moves, castlingAvailability];
+    }
+
+    // captureSquare is optionally different from the toSq (eg for en passant)
+    const makeCaptureMove = (captureSquare: SquareState = toSq) => {
+        const capture = capturePiece(captureSquare, state); // capture the piece before you set down the taking piece
         pieceToMove = liftSquarePiece(fromSq, state);
         setPieceOn(pieceToMove, toSq);
 
@@ -772,24 +753,23 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
             promotion
         });
     }
+
+    // capturing a piece
+    if (fromSq.piece && toSq && toSq.piece && !compareSquarePieceColor(fromSq, toSq)) {
+        makeCaptureMove();
+    }
     // capturing by en passant
     else if (
-        fromSq && toSq && state.enPassantState?.captureSquare &&
+        toSq && state.enPassantState?.captureSquare && enPassantPieceCoord &&
         compareSquareCoords(toSq, state.enPassantState.captureSquare) &&
-        !compareSquarePieceColor(fromSq, getSquare(state.enPassantState.pieceSquare.file, state.enPassantState.pieceSquare.rank, state))
+        !compareSquarePieceColor(fromSq, getSquare(enPassantPieceCoord.file, enPassantPieceCoord.rank, state))
     ) {
-        const capture = capturePieceByEnPassant(state); // capture the piece before you set down the taking piece
-        pieceToMove = liftSquarePiece(fromSq, state);
-        setPieceOn(pieceToMove, toSq);
-
-        moves.push({
-            from: getCoordinates(fromSq),
-            to: getCoordinates(toSq),
-            capture
-        });
+        makeCaptureMove(
+            getSquare(enPassantPieceCoord.file, enPassantPieceCoord.rank, state)
+        );
     }
     // moving to an empty square
-    else if (fromSq && fromSq.piece && !toSq.piece) {
+    else if (fromSq.piece && !toSq.piece) {
 
         moves.push({
             from: getCoordinates(fromSq),
@@ -858,9 +838,9 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
     }
 
     // If a move was made
-    if (fromSq && pieceToMove && moves.length > 0) {
+    if (pieceToMove && moves.length > 0) {
         // clear and set new en passant state
-        state.enPassantState = getEnPassantState(fromSq, toSq, pieceToMove, state);
+        state.enPassantState = getEnPassantState(fromSq, toSq, pieceToMove);
 
         // clear and set new promotion state
         state.promotionState = promotion ? getCoordinates(toSq) : undefined;
