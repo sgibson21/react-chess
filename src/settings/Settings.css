@@ -23,11 +23,10 @@
     background-color: rgba(0, 0, 0, .12);
 }
 
-form {
-    display: flex;
+label {
+    margin-right: 20px;
 }
 
 input {
-    margin-left: 20px;
     font-size: 16pt;
 }

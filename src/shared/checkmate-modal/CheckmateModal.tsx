@@ -11,7 +11,7 @@ type CheckmateModalProps = {
 export const CheckmateModal = ({ winner, onClose, onNewGame, onMainMenu }: CheckmateModalProps) => {
     return (
         <div className='checkmate-modal'>
-            <div className='close' onClick={onClose}>X</div>
+            <div className='close-modal' onClick={onClose}>X</div>
             <div className='modal-body'>
                 <h2>{winner.charAt(0).toUpperCase() + winner.slice(1)} Wins!</h2>
                 <div className='options'>
