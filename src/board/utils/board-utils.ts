@@ -238,9 +238,9 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
     if (isValidMove(to.file, to.rank, state)) {
 
         // move piece to new square
-        const [moves, castlingAvailability] = movePiece(to, state);
-
-        state.castling = castlingAvailability;
+        // const [moves, castlingAvailability] = movePiece(to, state);
+        // TODO: moving to fen based history will need its own branch...
+        const moves = movePiece(to, state);
 
         if (moves.length > 0) {
 
@@ -723,10 +723,139 @@ const capturePiece: (square: SquareState, state: BoardState) => capture | undefi
  * TODO: should a capture just be a move from the square -> to OFF the board and into the players stash?
  * 
  */
-const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord, state: BoardState) => {
+// const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord, state: BoardState) => {
+//     let pieceToMove: Piece | undefined;
+//     const moves: move[] = [];
+//     let castlingAvailability = state.castling;
+//     const fromSq = state.activeSq;
+//     const toSq = state.squares[to.file][to.rank];
+//     const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
+//     const enPassantPieceCoord: coord | false = getEnPassantPieceCoord(state);
+//     const enPassantState = state.enPassantCoord; // TODO: this is here to allow a reference in the reverse closure
+
+//     if (!fromSq) {
+//         return [moves, castlingAvailability];
+//     }
+
+//     // captureSquare is optionally different from the toSq (eg for en passant)
+//     const makeCaptureMove = (captureSquare: SquareState = toSq) => {
+//         const capture = capturePiece(captureSquare, state); // capture the piece before you set down the taking piece
+//         pieceToMove = liftSquarePiece(fromSq, state);
+//         setPieceOn(pieceToMove, toSq);
+
+//         moves.push({
+//             from: getCoordinates(fromSq),
+//             to: getCoordinates(toSq),
+//             capture,
+//             promotion,
+//             reverse: captureSquare === toSq ? undefined : (board) => {
+//                 // TODO: this only works for undoing a single move - need to move to fen based history implementation
+//                 if (enPassantState) {
+//                     board.enPassantCoord = enPassantState
+//                 }
+//                 return board;
+//             }
+//         });
+//     }
+
+//     // capturing a piece
+//     if (fromSq.piece && toSq && toSq.piece && !compareSquarePieceColor(fromSq, toSq)) {
+//         makeCaptureMove();
+//     }
+//     // capturing by en passant
+//     else if (
+//         toSq && state.enPassantCoord && enPassantPieceCoord &&
+//         compareSquareCoords(toSq, state.enPassantCoord) &&
+//         !compareSquarePieceColor(fromSq, getSquare(enPassantPieceCoord.file, enPassantPieceCoord.rank, state))
+//     ) {
+//         makeCaptureMove(
+//             getSquare(enPassantPieceCoord.file, enPassantPieceCoord.rank, state)
+//         );
+//     }
+//     // moving to an empty square
+//     else if (fromSq.piece && !toSq.piece) {
+
+//         moves.push({
+//             from: getCoordinates(fromSq),
+//             to: getCoordinates(toSq),
+//             capture: undefined,
+//             promotion
+//         });
+
+//         // castling - if moving a king more than 1 space
+//         if (fromSq.piece.type === 'king' && distanceBetweenFiles(fromSq.file, toSq.file) > 1) {
+
+//             const documentCastlingState = (move: move, symbolToRevoke: castlingSymbol) => {
+//                 if (castlingAvailability.includes(symbolToRevoke)) {
+//                     castlingAvailability = revokeCastlingRights(castlingAvailability, [symbolToRevoke]);
+//                     // add reverse function to reinstate castling availability to the move
+//                     move.reverse = (state: BoardState) => {
+//                         state.castling = reinstateCastlingRights(castlingAvailability, [symbolToRevoke]);
+//                         return state;
+//                     };
+//                 }
+//                 return move;
+//             }
+
+//             // move rook to other side of king
+//             if (fromSq.file < toSq.file) {
+//                 // short castling
+//                 const rookSq = getSquare('h', fromSq.rank, state);
+//                 if (rookSq.piece) {
+//                     const rook = liftSquarePiece(rookSq, state);
+//                     setPieceOn(rook, getSquare('f', fromSq.rank, state));
+
+//                     let move: move = {
+//                         from: {file: 'h', rank: fromSq.rank},
+//                         to: {file: 'f', rank: fromSq.rank}
+//                     };
+
+//                     const symbolToRevoke: castlingSymbol = fromSq.piece.color === 'white' ? 'K' : 'k';
+//                     move = documentCastlingState(move, symbolToRevoke);
+
+//                     moves.push(move);
+//                 }
+//             } else {
+//                 // long castling
+//                 const rookSq = getSquare('a', fromSq.rank, state);
+//                 if (rookSq.piece) {
+//                     const rook = liftSquarePiece(rookSq, state);
+//                     setPieceOn(rook, getSquare('d', fromSq.rank, state));
+
+//                     let move: move = {
+//                         from: {file: 'a', rank: fromSq.rank},
+//                         to: {file: 'd', rank: fromSq.rank}
+//                     };
+
+//                     const symbolToRevoke: castlingSymbol = fromSq.piece.color === 'white' ? 'Q' : 'q';
+//                     move = documentCastlingState(move, symbolToRevoke);
+                    
+//                     moves.push(move);
+//                 }
+//             }
+//         }
+
+//         // move piece (including castling king)
+//         pieceToMove = liftSquarePiece(fromSq, state);
+//         setPieceOn(pieceToMove, toSq);
+
+//     }
+
+//     // If a move was made
+//     if (pieceToMove && moves.length > 0) {
+//         // clear and set new en passant state
+//         state.enPassantCoord = getEnPassantState(fromSq, toSq, pieceToMove);
+
+//         // clear and set new promotion state
+//         state.promotionState = promotion ? getCoordinates(toSq) : undefined;
+//     }
+
+//     return [moves, castlingAvailability];
+// }
+
+const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: BoardState) => {
     let pieceToMove: Piece | undefined;
     const moves: move[] = [];
-    let castlingAvailability = state.castling;
     const fromSq = state.activeSq;
     const toSq = state.squares[to.file][to.rank];
     const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
@@ -734,7 +863,7 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
     const enPassantState = state.enPassantCoord; // TODO: this is here to allow a reference in the reverse closure
 
     if (!fromSq) {
-        return [moves, castlingAvailability];
+        return moves;
     }
 
     // captureSquare is optionally different from the toSq (eg for en passant)
@@ -786,12 +915,12 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
         if (fromSq.piece.type === 'king' && distanceBetweenFiles(fromSq.file, toSq.file) > 1) {
 
             const documentCastlingState = (move: move, symbolToRevoke: castlingSymbol) => {
-                if (castlingAvailability.includes(symbolToRevoke)) {
-                    castlingAvailability = revokeCastlingRights(castlingAvailability, [symbolToRevoke]);
+                if (state.castling.includes(symbolToRevoke)) {
+                    state.castling = revokeCastlingRights(state.castling, [symbolToRevoke]);
                     // add reverse function to reinstate castling availability to the move
-                    move.reverse = (state: BoardState) => {
-                        state.castling = reinstateCastlingRights(castlingAvailability, [symbolToRevoke]);
-                        return state;
+                    move.reverse = (_state: BoardState) => {
+                        _state.castling = reinstateCastlingRights(state.castling, [symbolToRevoke]);
+                        return _state;
                     };
                 }
                 return move;
@@ -850,7 +979,7 @@ const movePiece: (to: coord, state: BoardState) => [move[], string] = (to: coord
         state.promotionState = promotion ? getCoordinates(toSq) : undefined;
     }
 
-    return [moves, castlingAvailability];
+    return moves;
 }
 
 const liftSquarePiece: (coord: coord, board: BoardState) => Piece | undefined = ({file, rank}: coord, board: BoardState) => {
