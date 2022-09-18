@@ -11,7 +11,7 @@ export const files: file[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const filesReversed: file[] = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
 export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
 export const ranksReversed: rank[] = [8, 7, 6, 5, 4, 3, 2, 1];
-export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq';
+export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
 
 export type BoardState = {
     squares: boardSquaresState;
@@ -356,8 +356,10 @@ export const loadPositionFromFen: (fen: string, state: BoardState) => BoardState
 
     state.castling = castling;
 
-    const [file, rank] = enPassant.split('');
-    state.enPassantCoord = {file: file as file, rank: +rank as rank};
+    if (enPassant !== '-') {
+        const [file, rank] = enPassant.split('');
+        state.enPassantCoord = {file: file as file, rank: +rank as rank};
+    }
 
     return state;
 }
