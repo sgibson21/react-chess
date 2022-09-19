@@ -239,13 +239,15 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
 /**
  * Moves the piece in the active square to the given square
  */
- export const movePieceTo: (to: coord, state: BoardState) => BoardState = (to: coord, state: BoardState) => {
+ export const movePieceTo: (from: coord, to: coord, state: BoardState) => BoardState = (from: coord, to: coord, state: BoardState) => {
     state = {...state};
 
-    if (isValidMove(to.file, to.rank, state)) {
+    const fromSq = getSquare(from.file, from.rank, state);
+    const toSq = getSquare(to.file, to.rank, state);
+    if (fromSq && toSq && isValidMove(to.file, to.rank, state)) {
 
         // move piece to new square
-        const moves = movePiece(to, state);
+        const moves = movePiece(fromSq, toSq, state);
 
         if (moves.length > 0) {
 
@@ -791,18 +793,12 @@ const capturePiece: (square: SquareState, state: BoardState) => capture | undefi
  * TODO: should a capture just be a move from the square -> to OFF the board and into the players stash?
  * 
  */
-const movePiece: (to: coord, state: BoardState) => move[] = (to: coord, state: BoardState) => {
+const movePiece: (fromSq: SquareState, toSq: SquareState, state: BoardState) => move[] = (fromSq: SquareState, toSq: SquareState, state: BoardState) => {
     let pieceToMove: Piece | undefined;
     const moves: move[] = [];
     let castlingAvailability = state.castling;
-    const fromSq = state.activeSq;
-    const toSq = state.squares[to.file][to.rank];
     const promotion: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
     const enPassantPieceCoord: coord | false = getEnPassantPieceCoord(state);
-
-    if (!fromSq) {
-        return moves;
-    }
 
     // captureSquare is optionally different from the toSq (eg for en passant)
     const makeCaptureMove = (captureSquare: SquareState = toSq) => {
