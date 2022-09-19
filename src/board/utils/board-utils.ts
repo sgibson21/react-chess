@@ -247,8 +247,6 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
         // move piece to new square
         const moves = movePiece(to, state);
 
-        state.castling = castlingAvailability;
-
         if (moves.length > 0) {
 
             state.undoHistory.push(moves);
