@@ -11,7 +11,7 @@ import {
     movePieceTo, setActiveSquare, BoardState, isValidMove, LocatedPiece,
     promotePiece, readyForActiveSquareSelection, getBoardRenderOrder, cancelPromotion
 } from './utils/board-utils';
-import { SquareState } from './utils/square-utils';
+import { getCoordinates, SquareState } from './utils/square-utils';
 import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { DndProvider } from 'react-dnd';
 import useHistory from './hooks/useHistory';
@@ -78,9 +78,9 @@ export const Board = ({boardState, makeMove, options = defaultBoardOptions}: Boa
     const squareClicked = (file: file, rank: rank) => {
         setAnimate(true);
         // move the piece if there's an active piece and they havn't clicked their own piece
-        if (isValidMove(file, rank, boardState)) {
+        if (isValidMove(file, rank, boardState) && boardState.activeSq) {
             makeMove(
-                movePieceTo({file, rank}, boardState)
+                movePieceTo(getCoordinates(boardState.activeSq), {file, rank}, boardState)
             );
         }
     };
@@ -99,10 +99,10 @@ export const Board = ({boardState, makeMove, options = defaultBoardOptions}: Boa
             );
         }
         // move the piece if there's an active piece and they havn't clicked their own piece
-        else if (isValidMove(file, rank, boardState)) {
+        else if (isValidMove(file, rank, boardState) && boardState.activeSq) {
             setAnimate(true);
             makeMove(
-                movePieceTo({file, rank}, boardState)
+                movePieceTo(getCoordinates(boardState.activeSq), {file, rank}, boardState)
             );
         }
     };
@@ -123,17 +123,19 @@ export const Board = ({boardState, makeMove, options = defaultBoardOptions}: Boa
     
     const onDrop = (file: file, rank: rank) => {
         setAnimate(false);
-        makeMove(
-            movePieceTo({file, rank}, boardState)
-        );
+        if (boardState.activeSq) {
+            makeMove(
+                movePieceTo(getCoordinates(boardState.activeSq), {file, rank}, boardState)
+            );
+        }
     };
     
     const onCapture = (pieceID: string) => {
         const toSquare: SquareState | undefined = getSquareByPieceID(pieceID, boardState);
-        if (toSquare) {
+        if (boardState.activeSq && toSquare) {
             setAnimate(false);
             makeMove(
-                movePieceTo({file: toSquare.file, rank: toSquare.rank}, boardState)
+                movePieceTo(getCoordinates(boardState.activeSq), {file: toSquare.file, rank: toSquare.rank}, boardState)
             );
         }
     };
