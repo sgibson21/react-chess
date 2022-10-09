@@ -9,7 +9,7 @@ import './MovablePiece.css';
 import PromotionSelect, { promotionType } from './PromotionSelect';
 import classNames from 'classnames';
 
-export type OnPromotionCallback = (selection: promotionType, coord: coord | null) => void;
+export type OnPromotionCallback = (selection: promotionType, coord: coord) => void;
 
 type MovablePieceData = {
     piece: Piece;
@@ -18,20 +18,14 @@ type MovablePieceData = {
     animate: boolean;
     onClick: (file: file, rank: rank) => void;
     onDragStart: (file: file, rank: rank) => void;
-    onCapture: (pieceID: string) => void;
     onPromotion: OnPromotionCallback;
 };
 
-export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDragStart, onCapture, onPromotion }: MovablePieceData) => {
+export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDragStart, onPromotion }: MovablePieceData) => {
     
-    const coord = useSelector((state: any) => {
+    const coord: coord | undefined = useSelector((state: any) => {
         return state.pieceLocation[piece.id];
     });
-
-    const [ _, drop ] = useDrop(() => ({
-        accept: 'piece',
-        drop: () => onCapture(piece.id),
-    }), [piece, onCapture, boardState]); // remember to add all dependencies
 
     const { isDragging } = useDragLayer(monitor => ({
         isDragging: monitor.isDragging()
@@ -67,7 +61,7 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
     );
 
     return (
-        <div ref={drop} className={gridPieceClassNames}>
+        <div className={gridPieceClassNames}>
             {
                 whitePromotion &&
                 <PromotionSelect color={'white'} onClick={(type: pieceType | 'cancel') => onPromotion(type, coord)}/>

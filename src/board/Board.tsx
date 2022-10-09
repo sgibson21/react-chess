@@ -1,22 +1,20 @@
-import { useEffect, useState } from 'react';
-import './Board.css';
+import { useEffect } from 'react';
+import '../board/Board.css';
 import { file, pieceColor, rank } from './types';
 import { Square } from './Square';
 import { CustomDragLayer } from './CustomDragLayer';
 import { useDispatch } from 'react-redux';
-import { setBoard } from '../app/pieceLocationSlice';
+import { setPieceLocations } from '../app/pieceLocationSlice';
 import {
-    back, forward, clearActiveSq, getActiveSquare, getLocatedPieces, getSquare,
-    getSquareByPieceID, hasActiveSq, isActiveSq, isAvailableSquare, isOwnPiece,
-    movePieceTo, setActiveSquare, BoardState, isValidMove, LocatedPiece,
-    promotePiece, readyForActiveSquareSelection, getBoardRenderOrder, cancelPromotion
+    getActiveSquare, getLocatedPieces, getSquare, isActiveSq, isAvailableSquare, BoardState, 
+    LocatedPiece, getBoardRenderOrder, readyForActiveSquareSelection, setActiveSquare, isOwnPiece,
+    clearActiveSq, isValidMove, getMoves, move, playMoves, cancelPromotion, getPromotionMove, hasActiveSq
 } from './utils/board-utils';
-import { getCoordinates, SquareState } from './utils/square-utils';
 import { MovablePiece, OnPromotionCallback } from './MovablePiece';
 import { DndProvider } from 'react-dnd';
-import useHistory from './hooks/useHistory';
 import classNames from 'classnames';
 import { TouchBackend } from 'react-dnd-touch-backend';
+import { getCoordinates } from './utils/square-utils';
 
 export type BoardOptions = {
 
@@ -36,20 +34,22 @@ export type BoardOptions = {
 
 type BoardProps = {
     boardState: BoardState;
-    makeMove: (state: BoardState) => void;
+    setBoardState: (state: BoardState) => void;
+    dispatchMoves: (moves: move[]) => void; // TODO
+    animate: boolean;
+    setAnimate: (animate: boolean) => void;
     options?: BoardOptions;
 };
 
-const defaultBoardOptions: BoardOptions = {
+export const defaultBoardOptions: BoardOptions = {
     allowFlip: false,
     side: 'white'
 };
 
-export const Board = ({boardState, makeMove, options = defaultBoardOptions}: BoardProps) => {
+export const Board = ({
+    boardState, setBoardState, dispatchMoves, animate, setAnimate, options = defaultBoardOptions}: BoardProps) => {
 
     const { allowFlip, side } = options;
-
-    const [animate, setAnimate] = useState(true);
 
     // pieces need to be in a consistent order - not in the order they appear on the board
     // same pieces in the same order each time so react knows not to rerender (actually in the dom) a piece just because it moves
@@ -58,104 +58,89 @@ export const Board = ({boardState, makeMove, options = defaultBoardOptions}: Boa
     const mapLocatedPiecesToLocatedIDs = (lp: LocatedPiece) => ({file: lp.file, rank: lp.rank, id: lp.piece.id});
     const dispatch = useDispatch();
     useEffect(() => {
-        dispatch(setBoard(pieces.map(mapLocatedPiecesToLocatedIDs)));
+        dispatch(setPieceLocations(pieces.map(mapLocatedPiecesToLocatedIDs)));
     }, [pieces]);
 
-    useHistory(boardState, () => {
-        if (!side) {
-            setAnimate(true);
-            makeMove(back(boardState));
-        }
-    }, () => {
-        if (!side) {
-            setAnimate(true);
-            makeMove(forward(boardState));
-        }
-    });
-
     const [files, ranks] = getBoardRenderOrder(boardState.playersTurn, allowFlip, side);
-
-    const squareClicked = (file: file, rank: rank) => {
-        setAnimate(true);
-        // move the piece if there's an active piece and they havn't clicked their own piece
-        if (isValidMove(file, rank, boardState) && boardState.activeSq) {
-            makeMove(
-                movePieceTo(getCoordinates(boardState.activeSq), {file, rank}, boardState)
-            );
-        }
-    };
-    
-    const pieceClicked = (file: file, rank: rank) => {
-        // set active piece if they've clicked their own piece and it's their turn
-        if (readyForActiveSquareSelection(file, rank, boardState, side)) {
-            makeMove(
-                setActiveSquare(file, rank, boardState)
-            );
-        }
-        // clear the active square if it's active and they've clicked it again
-        else if (hasActiveSq(boardState) && isActiveSq(file, rank, boardState)) {
-            makeMove(
-                clearActiveSq(boardState)
-            );
-        }
-        // move the piece if there's an active piece and they havn't clicked their own piece
-        else if (isValidMove(file, rank, boardState) && boardState.activeSq) {
-            setAnimate(true);
-            makeMove(
-                movePieceTo(getCoordinates(boardState.activeSq), {file, rank}, boardState)
-            );
-        }
-    };
-    
-    const dragStart = (file: file, rank: rank) => {
-        // set active piece if they've clicked their own piece and it's their turn
-        if (readyForActiveSquareSelection(file, rank, boardState, side)) {
-            makeMove(
-                setActiveSquare(file, rank, boardState)
-            );
-        }
-        else if (!isOwnPiece(file, rank, boardState)) {
-            makeMove(
-                clearActiveSq(boardState)
-            );
-        }
-    };
-    
-    const onDrop = (file: file, rank: rank) => {
-        setAnimate(false);
-        if (boardState.activeSq) {
-            makeMove(
-                movePieceTo(getCoordinates(boardState.activeSq), {file, rank}, boardState)
-            );
-        }
-    };
-    
-    const onCapture = (pieceID: string) => {
-        const toSquare: SquareState | undefined = getSquareByPieceID(pieceID, boardState);
-        if (boardState.activeSq && toSquare) {
-            setAnimate(false);
-            makeMove(
-                movePieceTo(getCoordinates(boardState.activeSq), {file: toSquare.file, rank: toSquare.rank}, boardState)
-            );
-        }
-    };
-
-    const onPromotion: OnPromotionCallback = (selection, coord) => {
-        if (selection === 'cancel') {
-            makeMove(
-                cancelPromotion(boardState)
-            );
-        } else if (coord) {
-            makeMove(
-                promotePiece(coord, selection, boardState)
-            );
-        }
-    };
 
     const boardClassNames: string = classNames({
         'allow-flip': allowFlip ,
         [`side-${side}`]: !!side
     });
+
+    const handleMoves = (file: file, rank: rank, animate: boolean) => {
+        if (isValidMove(file, rank, boardState) && boardState.activeSq) {
+            setAnimate(animate);
+            const moves = getMoves(
+                getCoordinates(boardState.activeSq),
+                { file, rank },
+                boardState
+            );
+
+            if (boardState.promotionIntent) {
+                setBoardState(
+                    playMoves(moves, boardState)
+                );
+            } else {
+                dispatchMoves(moves);
+            }
+        }
+    };
+
+    const squareClicked = (file: file, rank: rank) => {
+        handleMoves(file, rank, true);
+    };
+
+    const pieceClicked = (file: file, rank: rank) => {
+        // set active piece if they've clicked their own piece and it's their turn
+        if (readyForActiveSquareSelection(file, rank, boardState, side)) {
+            setBoardState(
+                setActiveSquare(file, rank, boardState)
+            );
+        }
+        // clear the active square if it's active and they've clicked it again
+        else if (hasActiveSq(boardState) && isActiveSq(file, rank, boardState)) {
+            setBoardState(
+                clearActiveSq(boardState)
+            );
+        }
+        else {
+            handleMoves(file, rank, true);
+        }
+    };
+
+    const dragStart = (file: file, rank: rank) => {
+        // set active piece if they've clicked their own piece and it's their turn
+        if (readyForActiveSquareSelection(file, rank, boardState, options.side)) {
+            setBoardState(
+                setActiveSquare(file, rank, boardState)
+            );
+        }
+        else if (!isOwnPiece(file, rank, boardState)) {
+            setBoardState(
+                clearActiveSq(boardState)
+            );
+        }
+    };
+
+    const onDrop = (file: file, rank: rank) => {
+        handleMoves(file, rank, false);
+    };
+
+    const onPromotion: OnPromotionCallback = (selection, coord) => {
+        if (selection === 'cancel') {
+            setAnimate(true);
+            setBoardState(
+                cancelPromotion(coord, boardState)
+            );
+        } else if (boardState.promotionIntent) {
+            setAnimate(false);
+            const {from, to} = boardState.promotionIntent;
+            dispatchMoves(
+                getPromotionMove(from, to, selection)
+            );
+        }
+    };
 
     /**
      * don't show what's active or available if it's not the current side's turn
@@ -197,7 +182,6 @@ export const Board = ({boardState, makeMove, options = defaultBoardOptions}: Boa
                             animate={animate}
                             onClick={pieceClicked}
                             onDragStart={dragStart}
-                            onCapture={onCapture}
                             onPromotion={onPromotion}
                         />
                     ))

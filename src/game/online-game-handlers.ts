@@ -1,4 +1,5 @@
-import { BoardState } from '../board/utils/board-utils';
+import { BoardState, move } from '../board/utils/board-utils';
+import { playMoves } from '../board/utils/board-utils';
 
 type OnlineGameHandlersProps = {
     setBoard: (board: BoardState) => void;
@@ -41,6 +42,13 @@ export default function ({ setError, setInfo, setBoard, handlePlayerResponse }: 
                 if (res.status === 200) {
                     setBoard(state);
                 }
+            }
+        },
+        move_made: (board: BoardState) => {
+            return (moves: move[]) => {
+                const state = playMoves(moves, board);
+                console.log('moves recieved:', moves, state)
+                setBoard(state);
             }
         }
     };

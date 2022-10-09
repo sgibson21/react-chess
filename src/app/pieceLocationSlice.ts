@@ -5,7 +5,7 @@ export const pieceLocationSlice = createSlice({
     name: 'pieceLocation',
     initialState: {} as any,
     reducers: {
-        setBoard: (state, action: {payload: {file: file, rank: rank, id: string}[], type: string}) => {
+        setPieceLocations: (state, action: {payload: {file: file, rank: rank, id: string}[], type: string}) => {
             const locations = action.payload;
             locations.forEach(({file, rank, id}) => {
                 // TODO: not sure how to clear the state?
@@ -16,6 +16,6 @@ export const pieceLocationSlice = createSlice({
     },
 });
 
-export const { setBoard } = pieceLocationSlice.actions;
+export const { setPieceLocations } = pieceLocationSlice.actions;
 
 export default pieceLocationSlice.reducer;
