@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Board, BoardOptions } from '../board/Board';
 import './OnlineGame.css';
 import useOnlineGame from './useOnlineGame';
@@ -8,36 +9,40 @@ type OnlineGameProps = {
 
 export function OnlineGame({onBack}: OnlineGameProps) {
 
-  const [
-    board,
-    side,
-    info,
-    error,
-    makeMove,
-    closeConnection
-  ] = useOnlineGame();
+    const [
+        board,
+        side,
+        info,
+        error,
+        setBoard,
+        makeMoves,
+        closeConnection
+    ] = useOnlineGame();
 
-  const goBack = () => {
-    closeConnection();
-    onBack();
-  };
+    const [animate, setAnimate] = useState(true);
 
-  const options: BoardOptions = {
-    allowFlip: false,
-    side: side || undefined
-  };
+    const goBack = () => {
+        closeConnection();
+        onBack();
+    };
 
-  if (error) {
-    return <div className="msg">
-      <h3 className="error">{ error || 'Connection Error' }</h3>
-      <p className="info back"><a onClick={() => goBack()}>Back</a></p>
-    </div>
-  }
+    const options: BoardOptions = {
+        allowFlip: false,
+        side: side || undefined
+    };
 
-  if (info) {
-    return <div className="msg info"><h3>{info}</h3></div>
-  }
+    if (error) {
+        return <div className="msg">
+        <h3 className="error">{ error || 'Connection Error' }</h3>
+        <p className="info back"><a onClick={() => goBack()}>Back</a></p>
+        </div>
+    }
 
-  return <Board boardState={board} makeMove={makeMove} options={options} />
+    if (info) {
+        return <div className="msg info"><h3>{info}</h3></div>
+    }
+
+    return <Board boardState={board} setBoardState={setBoard}
+    dispatchMoves={makeMoves} animate={animate} setAnimate={setAnimate} options={options} />
 
 }

@@ -1,5 +1,4 @@
 import './App.css';
-import { Board, BoardOptions } from './board/Board';
 import store from './app/store'
 import { Provider } from 'react-redux'
 import { BoardState, isCheckmate } from './board/utils/board-utils';
@@ -8,6 +7,8 @@ import { GameType, Settings } from './settings/Settings';
 import { useState } from 'react';
 import { OnlineGame } from './game/OnlineGame';
 import { CheckmateModal } from './shared/checkmate-modal/CheckmateModal';
+import { LocalGame } from './game/LocalGame';
+import { BoardOptions } from './board/Board';
 
 function App() {
 
@@ -16,12 +17,13 @@ function App() {
   const [isMate, setIsMate] = useState(false);
 
   const onOptionSelect = (option: GameType) => {
-    setBoard(loadPositionFromFen(START_FEN, initBoard()));
+    // setBoard(loadPositionFromFen(START_FEN, initBoard()));
+    setBoard(loadPositionFromFen('r3k2r/pP2pppp/2p5/3pP3/8/8/PPPP1PPP/R3K2R w K d6', initBoard()));
     setIsMate(false);
     setGameType(option);
   };
 
-  const makeMove = (state: BoardState) => {
+  const setBoardState = (state: BoardState) => {
     setBoard(state);
     const isMate = isCheckmate(state);
     setIsMate(isMate);
@@ -44,7 +46,8 @@ function App() {
           !gameType && <Settings onClick={onOptionSelect} />
         }
         {
-          !!gameType && gameType !== GameType.online && board && <Board boardState={board} makeMove={makeMove} options={options} />
+          !!gameType && gameType !== GameType.online && board &&
+          <LocalGame boardState={board} setBoardState={setBoardState} options={options} />
         }
         {
           gameType === GameType.online && <OnlineGame onBack={() => mainMenu()} />
