@@ -14,9 +14,11 @@ type UseOnlineGameReturnValue = [
   side: pieceColor | undefined,
   info: string | null,
   error: string | null,
+  animate: boolean,
   setBoard: (state: BoardState) => void,
   makeMoves: (moves: move[]) => void,
-  closeConnection: () => void
+  closeConnection: () => void,
+  setAnimate: (animate: boolean) => void
 ];
 
 export default function useOnlineGame(): UseOnlineGameReturnValue {
@@ -26,6 +28,7 @@ export default function useOnlineGame(): UseOnlineGameReturnValue {
   const [userId] = useUserId();
   const [info, setInfo] = useState<string | null>('Loading...');
   const [error, setError] = useState<string | null>(null);
+  const [animate, setAnimate] = useState(true);
   const ip = process.env.REACT_APP_CHESS_IP; // use ip env var when playing on network
 
   const handlePlayerResponse = (players: string[]) => {
@@ -79,7 +82,11 @@ export default function useOnlineGame(): UseOnlineGameReturnValue {
 
   // separate useEffect because board is a dependency
   useEffect(() => {
-    socket.on('move_made', move_made(board));
+    // socket.on('move_made', move_made(board));
+    socket.on('move_made', (moves: move[]) => {
+      setAnimate(true);
+      return move_made(board)(moves);
+    });
     // cleanup
     return () => {
       socket.off('move_made');
@@ -101,9 +108,11 @@ export default function useOnlineGame(): UseOnlineGameReturnValue {
     side,
     info,
     error,
+    animate,
     setBoard,
     makeMoves,
-    closeConnection
+    closeConnection,
+    setAnimate
   ];
 
 };

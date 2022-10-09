@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Board, BoardOptions } from '../board/Board';
 import './OnlineGame.css';
 import useOnlineGame from './useOnlineGame';
@@ -14,12 +13,12 @@ export function OnlineGame({onBack}: OnlineGameProps) {
         side,
         info,
         error,
+        animate,
         setBoard,
         makeMoves,
-        closeConnection
+        closeConnection,
+        setAnimate
     ] = useOnlineGame();
-
-    const [animate, setAnimate] = useState(true);
 
     const goBack = () => {
         closeConnection();
