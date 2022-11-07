@@ -1,17 +1,29 @@
-import { pieceColor } from '../../board/types';
+import { useDispatch } from 'react-redux';
+import { useWinner } from '../../app/boardStateSlice';
+import { SET_GAME_OVER_WINDOW_CLOSED, useGameOverWindowClosed } from '../../app/settingsSlice';
 import './CheckmateModal.css';
 
 type CheckmateModalProps = {
-    winner: pieceColor,
-    onClose: () => void,
     onNewGame: () => void,
     onMainMenu: () => void
 }
 
-export const CheckmateModal = ({ winner, onClose, onNewGame, onMainMenu }: CheckmateModalProps) => {
+export const CheckmateModal = ({ onNewGame, onMainMenu }: CheckmateModalProps) => {
+    const winner = useWinner();
+    const closed = useGameOverWindowClosed();
+    const dispatch = useDispatch();
+
+    if (closed || !winner) {
+        return <></>;
+    }
+
+    const handleClose = () => {
+        dispatch(SET_GAME_OVER_WINDOW_CLOSED(true));
+    };
+
     return (
         <div className='checkmate-modal'>
-            <div className='close-modal' onClick={onClose}>X</div>
+            <div className='close-modal' onClick={handleClose}>X</div>
             <div className='modal-body'>
                 <h2>{winner.charAt(0).toUpperCase() + winner.slice(1)} Wins!</h2>
                 <div className='options'>

@@ -1,41 +1,19 @@
-import { useState } from 'react';
-import '../board/Board.css';
-import { BoardState, back, forward, playMoves, move } from '../board/utils/board-utils';
-import { Board, BoardOptions, defaultBoardOptions } from '../board/Board';
-import useHistory from '../board/hooks/useHistory';
+import { FC } from "react";
+import { usePlayerTurn } from "../app/boardStateSlice";
+import { BoardOptions } from "../board/Board";
+import { LocalBoard } from "../board/LocalBoard";
+import { pieceColor } from "../board/types";
 
-type BoardProps = {
-    boardState: BoardState;
-    setBoardState: (state: BoardState) => void;
-    options?: BoardOptions;
-};
+export const LocalGame: FC = () => {
 
-export const LocalGame = ({boardState: board, setBoardState, options = defaultBoardOptions}: BoardProps) => {
+    const playersTurn: pieceColor = usePlayerTurn();
 
-    const [animate, setAnimate] = useState(true);
+    const options: BoardOptions = {
+        allowFlip: true
+    };
 
-    useHistory(board, () => {
-        if (!options.side) {
-            setAnimate(true);
-            setBoardState(back(board));
-        }
-    }, () => {
-        if (!options.side) {
-            setAnimate(true);
-            setBoardState(forward(board));
-        }
-    });
-
-    const makeMoves = (moves: move[]) => {
-        // local game just plays the moves - we dont need to send anything
-        setBoardState(
-            playMoves(moves, board)
-        );
-    }
-
-    return (
-        <Board boardState={board} setBoardState={setBoardState} 
-        dispatchMoves={makeMoves} animate={animate} setAnimate={setAnimate} options={options} />
-    );
+    return <div className={`local-game allow-flip player-${playersTurn}`}>
+        <LocalBoard options={options} />
+    </div>
 
 }

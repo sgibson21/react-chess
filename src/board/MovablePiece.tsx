@@ -1,47 +1,60 @@
-import { useSelector } from 'react-redux';
+import classNames from 'classnames';
+import './MovablePiece.css';
 import { DraggablePiece } from './DraggablePiece';
 import { coord, file, pieceColor, pieceType, rank } from './types';
-import { useDragLayer, useDrop } from 'react-dnd';
-import { BoardState } from './utils/board-utils';
-import { isActiveSq } from './utils/board-utils';
-import { Piece, PAWN } from './utils/piece-utils';
-import './MovablePiece.css';
+import { PAWN } from './utils/piece-utils';
 import PromotionSelect, { promotionType } from './PromotionSelect';
-import classNames from 'classnames';
+import { usePlayerTurnIfSide, useSquareFromPieceId } from '../app/boardStateSlice';
+import { SquareState } from './utils/square-utils';
+import { useSelector } from 'react-redux';
+import { MutableRefObject, useRef } from 'react';
+import { useDrop } from 'react-dnd';
 
 export type OnPromotionCallback = (selection: promotionType, coord: coord) => void;
 
 type MovablePieceData = {
-    piece: Piece;
-    boardState: BoardState;
+    pieceId: string;
     side: pieceColor | undefined;
-    animate: boolean;
     onClick: (file: file, rank: rank) => void;
     onDragStart: (file: file, rank: rank) => void;
+    onDrop: (file: file, rank: rank) => void;
     onPromotion: OnPromotionCallback;
 };
 
-export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDragStart, onPromotion }: MovablePieceData) => {
-    
-    const coord: coord | undefined = useSelector((state: any) => {
-        return state.pieceLocation[piece.id];
+const useAnimate = (square: SquareState) => {
+    const oldSquare: MutableRefObject<SquareState | null> = useRef(null);
+    const oldAnimate: MutableRefObject<boolean> = useRef(false);
+    return useSelector((state: any) => {
+        if (square !== oldSquare.current) {
+            oldSquare.current = square;
+            oldAnimate.current = state.animation.animate;
+            return state.animation.animate;
+        } else {
+            return oldAnimate.current;
+        }
     });
+};
 
-    const { isDragging } = useDragLayer(monitor => ({
-        isDragging: monitor.isDragging()
-    }));
+export const MovablePiece = ( { pieceId, side, onClick, onDragStart, onDrop, onPromotion }: MovablePieceData) => {
 
-    if (!coord) {
+    const square = useSquareFromPieceId(pieceId);
+    const animate = useAnimate(square);
+    const playersTurn: pieceColor = usePlayerTurnIfSide(side);
+
+    const [{ isOver }, drop] = useDrop(() => ({
+        accept: 'piece',
+        drop: () => onDrop(coord.file, coord.rank),
+        collect: monitor => ({ isOver: !!monitor.isOver() })
+    }), [onDrop]);
+
+    if (!square || !square.piece) {
         return <></>;
     }
 
-    /**
-     * don't show the promotion window if it's not the current side's turn
-     * 
-     * TODO: ideally this info isnt sent over the socket but will do for now
-     *       This could be refactored into a util method, eg: showPreMoveOptions
-     */
-    const allowPromotionWindow = !side || side === boardState.playersTurn;
+    const coord = { file: square.file, rank: square.rank };
+    const piece = square.piece;
+
+    const allowPromotionWindow = !side || side === playersTurn;
 
     const whitePromotion = allowPromotionWindow && piece.type === PAWN && coord.rank === 8;
     const blackPromotion = allowPromotionWindow && piece.type === PAWN && coord.rank === 1;
@@ -54,14 +67,12 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
         coord.file,
         {
             'animate': animate && !promotion,
-            'grabbing': isDragging,
-            'grab': !isDragging,
-            'stop-pointer-events': isDragging
+            'grabbing': isOver
         }
     );
 
     return (
-        <div className={gridPieceClassNames}>
+        <div ref={drop} className={gridPieceClassNames}>
             {
                 whitePromotion &&
                 <PromotionSelect color={'white'} onClick={(type: pieceType | 'cancel') => onPromotion(type, coord)}/>
@@ -80,7 +91,6 @@ export const MovablePiece = ( {piece, boardState, side, animate, onClick, onDrag
                         file={coord.file}
                         rank={coord.rank}
                         onDragStart={onDragStart}
-                        isActive={isActiveSq(coord.file, coord.rank, boardState)}
                     />
                 </div>
             }

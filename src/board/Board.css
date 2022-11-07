@@ -73,7 +73,6 @@
     background-color: rgba(0,0,0,.1);
     -webkit-mask: radial-gradient(transparent 40px, #000 0px);
     mask: radial-gradient(transparent 40px, #000 0px);
-    cursor: grab;
 }
 
 .label {
@@ -106,13 +105,10 @@
     position: absolute;
     top: 0;
     background-size: 100px;
-}
-
-.grab {
     cursor: grab;
 }
 
-.grab:active {
+.piece:active {
     cursor: grabbing;
 }
 

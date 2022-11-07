@@ -13,14 +13,19 @@ export const ranks: rank[] = [1, 2, 3, 4, 5, 6, 7, 8];
 export const ranksReversed: rank[] = [8, 7, 6, 5, 4, 3, 2, 1];
 export const START_FEN: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
 
+const whiteFacingOrder: [file[], rank[]] = [files, ranksReversed];
+const blackFacingOrder: [file[], rank[]]  = [filesReversed, ranks];
+
 export type BoardState = {
     squares: boardSquaresState;
+    pieceLocations: pieceLocationState;
     undoHistory: move[][];
     redoHistory: move[][];
     activeSq: SquareState | null;
     availableSquares: SquareState[];
     playersTurn: pieceColor;
     castling: string;
+
     /**
      * square that the pawn to be captured skipped, on it's first move
      */
@@ -31,6 +36,10 @@ export type BoardState = {
      * this should be present only while the user is deciding which piece to promote to
      */
     promotionIntent?: move;
+    /**
+     * holds the winning piece color if there is checkmate on the board
+     */
+    winner?: pieceColor;
 };
 
 export type LocatedPiece = {
@@ -63,18 +72,25 @@ export type move = {
     };
 };
 
+export type capture = {
+    piece: Piece;
+    coord: coord
+};
+
 type boardSquaresState = {
     [file: string]: {
         [rank: number]: SquareState
     }
 };
 
-type castlingSymbol = 'K' | 'Q' | 'k' | 'q';
-
-export type capture = {
-    piece: Piece;
-    coord: coord
+/**
+ * key value pairs of [pieceId]: coord
+ */
+type pieceLocationState = {
+    [id: string]: string;
 };
+
+type castlingSymbol = 'K' | 'Q' | 'k' | 'q';
 
 type SimulateMoveData<T> = {
     move: {
@@ -141,7 +157,7 @@ export const isInCheck = (state: BoardState) => {
     return !!kingSq && isAttacked(state, getCoordinates(kingSq));
 }
 
-export const isCheckmate: (state: BoardState) => boolean = (state: BoardState) => {
+export const isCheckmate: (state: BoardState) => pieceColor | undefined = (state: BoardState) => {
     if (isInCheck(state)) {
         // check all current players pieces to see if any moves are available
         const squares: SquareState[] = [];
@@ -158,11 +174,12 @@ export const isCheckmate: (state: BoardState) => boolean = (state: BoardState) =
             // getPieceMovement of each square
             const squareWithValidMove = squares.find(sq => getPieceMovement(state, sq).length > 0)
 
-            // return true if no moves found
-            return !squareWithValidMove;
+            // return the other player if no moves are found
+            if (!squareWithValidMove) {
+                return state.playersTurn === COLOR_WHITE ? COLOR_BLACK : COLOR_WHITE;
+            }
     }
 
-    return false;
 }
 
 export const getPlayingColor: (state: BoardState) => pieceColor = (state: BoardState) => {
@@ -199,6 +216,7 @@ export const back: (state: BoardState) => BoardState = (state: BoardState) => {
         state = executeMovesBackwards(movesToUndo, state);
         state.redoHistory.push(movesToUndo);
         state = switchPlayer(state);
+        state.pieceLocations = getPieceLocations(state.squares);
     }
     return state;
 }
@@ -212,6 +230,7 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
         executeHistoryMoves(movesToRedo, state);
         state.undoHistory.push(movesToRedo);
         state = switchPlayer(state);
+        state.pieceLocations = getPieceLocations(state.squares);
     }
     return state;
 }
@@ -247,6 +266,7 @@ export const forward: (state: BoardState) => BoardState = (state: BoardState) =>
     if (state.promotionIntent) {
         state = executeMoveBackwards(state.promotionIntent, state);
         state.promotionIntent = undefined;
+        state.pieceLocations = getPieceLocations(state.squares);
     }
     return state;
 }
@@ -271,6 +291,7 @@ export const getLocatedPieces: (state: BoardState) => LocatedPiece[] = (state: B
 export const initBoard: () => BoardState = () => {
     return {
         squares: initSquares(),
+        pieceLocations: {},
         activeSq: null,
         availableSquares: [],
         enPassantCoord: undefined,
@@ -317,6 +338,8 @@ export const loadPositionFromFen: (fen: string, state: BoardState) => BoardState
     const [piecesFen, activeColor, castling, enPassant, halfmoveClock, fullmoveNumber] = fen.split(' ');
 
     state = loadFenPieces(piecesFen, state);
+
+    state.pieceLocations = getPieceLocations(state.squares);
 
     state.playersTurn = activeColor === 'w' ? 'white' : 'black';
 
@@ -404,8 +427,6 @@ export const readyForActiveSquareSelection = (file: file, rank: rank, state: Boa
  * 
  */
 export const getBoardRenderOrder: (playersTurn: pieceColor, allowFlip?: boolean, side?: pieceColor) => [file[], rank[]] = (playersTurn, allowFlip = false, side) => {
-    const whiteFacingOrder: [file[], rank[]] = [files, ranksReversed];
-    const blackFacingOrder: [file[], rank[]]  = [filesReversed, ranks];
     return (playersTurn === 'black' && allowFlip) || side === 'black' ? blackFacingOrder : whiteFacingOrder;
 }
 
@@ -418,7 +439,6 @@ export const getBoardRenderOrder: (playersTurn: pieceColor, allowFlip?: boolean,
     const pieceToMove = fromSq.piece;
     const moves: move[] = [];
     let castlingAvailability = state.castling;
-    const promotionInitialised: boolean = (toSq.rank === 8 || toSq.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
     const enPassantPieceCoord: coord | false = getEnPassantPieceCoord(state);
 
     // captureSquare is optionally different from the toSq (eg for en passant)
@@ -491,11 +511,6 @@ export const getBoardRenderOrder: (playersTurn: pieceColor, allowFlip?: boolean,
 
     }
 
-    // TODO: note this updates the state and we want this to be a pure function
-    if (promotionInitialised) {
-        state.promotionIntent = moves[0];
-    }
-
     // If a move was made
     if (pieceToMove && moves.length > 0) {
         // set old and new en passant state in first move
@@ -555,9 +570,19 @@ export const playMoves: (moves: move[], state: BoardState) => BoardState = (move
         }
     }
 
+    // check for checkmate after the player is changed to the player defending this move
+    state.winner = isCheckmate(state);
+
     state = clearActiveSq(state);
 
+    state.pieceLocations = getPieceLocations(state.squares);
+
     return state;
+}
+
+export const isPromotionMoveIntent = ({from, to}: move, state: BoardState) => {
+    const fromSq = getSquare(from.file, from.rank, state);
+    return (to.rank === 8 || to.rank === 1) && !!(fromSq && fromSq.piece && fromSq.piece.type === PAWN);
 }
 
 /**
@@ -931,6 +956,19 @@ const initSquares: () => boardSquaresState = () => {
         })
     });
     return state;
+}
+
+const getPieceLocations: (squares: boardSquaresState) => pieceLocationState = (squares: boardSquaresState) => {
+    const locations: pieceLocationState = {};
+    for (const file of files) {
+        for (const rank of ranks) {
+            const sq = squares[file] && squares[file][rank];
+            if (sq && sq.piece) {
+                locations[sq.piece.id] = `${file}${rank}`;
+            }
+        }
+    }
+    return locations;
 }
 
 /**

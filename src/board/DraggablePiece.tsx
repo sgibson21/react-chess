@@ -1,17 +1,19 @@
 import { DragPreviewImage, useDrag } from 'react-dnd'
 import { Piece } from './utils/piece-utils';
 import { file, rank } from './types';
-import { getEmptyImage } from 'react-dnd-html5-backend';
+import { useIsActiveSquare } from '../app/boardStateSlice';
 
 interface DraggablePieceProps {
     piece: Piece;
     file: file;
     rank: rank;
     onDragStart: (file: file, rank: rank) => void;
-    isActive: boolean;
 }
 
-export const DraggablePiece = ({ piece, file, rank, onDragStart, isActive }: DraggablePieceProps) => {
+export const DraggablePiece = ({ piece, file, rank, onDragStart }: DraggablePieceProps) => {
+
+    const isActive = useIsActiveSquare({ file, rank });
+
     const [{ isDragging }, drag, preview] = useDrag(() => {
         return {
             type: 'piece',
@@ -28,7 +30,7 @@ export const DraggablePiece = ({ piece, file, rank, onDragStart, isActive }: Dra
 
     return (
         <>
-            <DragPreviewImage connect={preview} src={getEmptyImage().src} />
+            <DragPreviewImage connect={preview} src={''} />
             <div ref={drag} style={{  visibility: isDragging ? 'hidden' : 'visible' }}>
                 <div className={`piece ${piece.imgClass}`}></div>
             </div>

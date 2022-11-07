@@ -1,14 +1,10 @@
-import { BoardState, move } from '../board/utils/board-utils';
-import { playMoves } from '../board/utils/board-utils';
-
 type OnlineGameHandlersProps = {
-    setBoard: (board: BoardState) => void;
     setInfo: (info: string | null) => void;
     setError: (error: string | null) => void;
     handlePlayerResponse: (players: string[]) => void;
 };
 
-export default function ({ setError, setInfo, setBoard, handlePlayerResponse }: OnlineGameHandlersProps) {
+export default function ({ setError, setInfo, handlePlayerResponse }: OnlineGameHandlersProps) {
     return {
         connection_status: (res: {count: number}) => {
             console.log('websocket connection_status:', res);
@@ -33,23 +29,5 @@ export default function ({ setError, setInfo, setBoard, handlePlayerResponse }: 
                 handlePlayerResponse(res);
             }
         },
-        state_update: (res: any) => {
-            console.log('state update from web socket:', res);
-            setBoard(res);
-        },
-        state_change: (state: BoardState) => {
-            return (res: {status: number}) => {
-                if (res.status === 200) {
-                    setBoard(state);
-                }
-            }
-        },
-        move_made: (board: BoardState) => {
-            return (moves: move[]) => {
-                const state = playMoves(moves, board);
-                console.log('moves recieved:', moves, state)
-                setBoard(state);
-            }
-        }
     };
 }

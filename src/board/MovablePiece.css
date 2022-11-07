@@ -1,5 +1,7 @@
 .grid-piece {
     position: absolute;
+    width: 50px;
+    height: 50px;
 }
 
 .stop-pointer-events {
@@ -26,7 +28,7 @@
     to   { opacity: 1; }
 }
 
-.promotion-select.ps-black {
+.App > div:not(.local-game) .promotion-select.ps-black {
     position: absolute;
     top: -350px;
     z-index: 1000;
@@ -154,35 +156,35 @@
     left: 0;
 }
 
-.allow-flip.player-black ._, .side-black ._8 {
+.allow-flip.player-black ._8, .side-black ._8 {
     top: 700px;
 }
 
-.allow-flip.player-black ._, .side-black ._7 {
+.allow-flip.player-black ._7, .side-black ._7 {
     top: 600px;
 }
 
-.allow-flip.player-black ._, .side-black ._6 {
+.allow-flip.player-black ._6, .side-black ._6 {
     top: 500px;
 }
 
-.allow-flip.player-black ._, .side-black ._5 {
+.allow-flip.player-black ._5, .side-black ._5 {
     top: 400px;
 }
 
-.allow-flip.player-black ._, .side-black ._4 {
+.allow-flip.player-black ._4, .side-black ._4 {
     top: 300px;
 }
 
-.allow-flip.player-black ._, .side-black ._3 {
+.allow-flip.player-black ._3, .side-black ._3 {
     top: 200px;
 }
 
-.allow-flip.player-black ._, .side-black ._2 {
+.allow-flip.player-black ._2, .side-black ._2 {
     top: 100px;
 }
 
-.allow-flip.player-black ._, .side-black ._1 {
+.allow-flip.player-black ._1, .side-black ._1 {
     top: 0;
 }
 
