@@ -1,8 +1,18 @@
 import { configureStore } from '@reduxjs/toolkit';
-import pieceLocationReducer from './pieceLocationSlice';
+import animationSlice from './animationSlice';
+import boardStateSlice from './boardStateSlice';
+import settingsSlice from './settingsSlice';
 
-export default configureStore({
+const store = configureStore({
     reducer: {
-        pieceLocation: pieceLocationReducer
+        boardState: boardStateSlice,
+        animation: animationSlice,
+        settings: settingsSlice
     },
+    devTools: true
 });
+
+export type AppDispatch = typeof store.dispatch;
+export const dispatch = store.dispatch;
+
+export default store;

@@ -1,6 +1,6 @@
 import { CSSProperties, useRef } from 'react';
 import { useDragLayer, XYCoord } from 'react-dnd';
-import { SquareState } from './utils/square-utils';
+import { useActiveSquare } from '../app/boardStateSlice';
 
 const layerStyles: CSSProperties = {
     position: 'fixed',
@@ -32,13 +32,15 @@ function getItemStyles(currentOffset: XYCoord | null, containerRef: any) {
     };
   }
 
-export const CustomDragLayer = ({ activeSquare }: { activeSquare: SquareState | null }) => {
+export const CustomDragLayer = () => {
 
     const { item, isDragging, currentOffset } = useDragLayer(monitor => ({
         item: monitor.getItem(),
         currentOffset:  monitor.getClientOffset(),
         isDragging: monitor.isDragging(),
     }));
+
+    const activeSquare = useActiveSquare();
 
     const containerRef = useRef<HTMLDivElement | null>(null);
 

@@ -9,15 +9,11 @@ type OnlineGameProps = {
 export function OnlineGame({onBack}: OnlineGameProps) {
 
     const [
-        board,
         side,
         info,
         error,
-        animate,
-        setBoard,
         makeMoves,
         closeConnection,
-        setAnimate
     ] = useOnlineGame();
 
     const goBack = () => {
@@ -41,7 +37,6 @@ export function OnlineGame({onBack}: OnlineGameProps) {
         return <div className="msg info"><h3>{info}</h3></div>
     }
 
-    return <Board boardState={board} setBoardState={setBoard}
-    dispatchMoves={makeMoves} animate={animate} setAnimate={setAnimate} options={options} />
+    return <Board dispatchMoves={makeMoves} options={options} />
 
 }

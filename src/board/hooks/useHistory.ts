@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { BoardState } from '../utils/board-utils';
 
-export default function useHistory(board: BoardState, onBack: () => void, onForward: () => void) {
+export default function useHistory(onBack: () => void, onForward: () => void) {
 
     const historyListener = (e: KeyboardEvent) => {
         if (e.key === 'ArrowRight') {
@@ -16,5 +15,5 @@ export default function useHistory(board: BoardState, onBack: () => void, onForw
 
         // clean up
         return () => document.removeEventListener('keydown', historyListener);
-    }, [board]);
+    }, []);
 }
