@@ -3,11 +3,11 @@ import { DefaultEventsMap } from '@socket.io/component-emitter';
 import { useEffect, useState } from 'react';
 import { initBoard, loadPositionFromFen, move, START_FEN } from '../board/utils/board-utils';
 import { pieceColor } from '../board/types';
-import useUserId from '../board/hooks/useUserId';
 import onlineGameHandlers from './online-game-handlers';
 import { useDispatch } from 'react-redux';
 import { PLAY_MOVES, setboardState } from '../app/boardStateSlice';
 import { SET_ANIMATION } from '../app/animationSlice';
+import { useOnlineUsername } from '../app/settingsSlice';
 
 let socket: Socket<DefaultEventsMap, DefaultEventsMap>;
 
@@ -25,7 +25,7 @@ export default function useOnlineGame(): UseOnlineGameReturnValue {
   dispatch(setboardState(loadPositionFromFen(START_FEN, initBoard())));
 
   const [side, setSide] = useState<pieceColor | undefined>();
-  const [userId] = useUserId();
+  const userId = useOnlineUsername();
   const [info, setInfo] = useState<string | null>('Loading...');
   const [error, setError] = useState<string | null>(null);
   const ip = process.env.REACT_APP_CHESS_IP; // use ip env var when playing on network

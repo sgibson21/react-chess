@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import useUserId from '../board/hooks/useUserId';
+import { useOnlineUsername } from '../app/settingsSlice';
+import { OnlineUsernameForm } from './online-username-form/OnlineUsernameForm';
+import { SettingsCard } from './settings-card/SettingsCard';
 import './Settings.css';
 
 export enum GameType {
@@ -14,42 +16,31 @@ type SettingsProps = {
 
 export function Settings(props: SettingsProps) {
 
-    const [savedUserId, setSavedUserId] = useUserId();
-    const [userId, setUserId] = useState(savedUserId);
-    const [userRequired, setUserRequired] = useState(false);
+    const savedUserId = useOnlineUsername();
+    const [onlineCardSelected, setOnlineCardSelected] = useState(false);
 
-    const onSubmit = () => {
-        if (userId) {
-            setSavedUserId(userId);
+
+    const onSubmit = (username: string) => {
+        if (username) {
             props.onClick(GameType.online);
         }
     };
 
-    const onlineSelected = () => {
+    const onOnlineCardSelected = () => {
         if (savedUserId) {
             props.onClick(GameType.online);
         } else {
-            setUserRequired(true);
+            setOnlineCardSelected(true);
         }
     }
 
-    const userInput = <form onSubmit={onSubmit}>
-        <label>Username:</label>
-        <input value={userId || ''} onChange={e => setUserId(e.target.value)} />
-        <input type='submit' />
-    </form>
-
-    const onlineOption = <span>Online { savedUserId && `(${savedUserId})` }</span>
-
     return (
-        <div className="settings">
-            <div className="setting-option" onClick={() => props.onClick(GameType.local)}>Local Play</div>
-            <div className="setting-option" onClick={onlineSelected}>
-                {
-                    userRequired && !savedUserId ? userInput : onlineOption
-                }
-            </div>
-            <div className="setting-option" onClick={() => props.onClick(GameType.analysis)}>Analysis</div>
+        <div className="scrolled-settings">
+            <SettingsCard title="Local Play" onClick={() =>props.onClick(GameType.local)} imgSrc="https://images.unsplash.com/photo-1599325313240-0402a1ba2c66?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1048&q=80" />
+            <SettingsCard title="Online Play" onClick={onOnlineCardSelected} imgSrc="https://images.unsplash.com/photo-1616996721984-ae86ad6c3b60?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80" >
+                <OnlineUsernameForm showForm={onlineCardSelected} onSubmit={(username: string) => onSubmit(username)} />
+            </SettingsCard>
+            <SettingsCard title="Analysis"  onClick={() =>props.onClick(GameType.analysis)} imgSrc="https://images.unsplash.com/photo-1529699310859-b163e33e4556?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80" />
         </div>
-    )
+    );
 }

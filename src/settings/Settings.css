@@ -1,32 +1,57 @@
-.settings {
-    width: 35%;
-    min-width: 300px;
-    background-color: rgb(39 37 34);
-    margin: 0 auto;
-    padding: 20px 40px;
-    border-radius: 2px;
-    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.45);
-}
-
-.setting-option {
-    background-color: rgba(0, 0, 0, .18);
-    color: rgb(179, 179, 179);
-    font-size: 1.6rem;
-    padding: 5px 10px;
-    margin-bottom: 10px;
-    border-radius: 2px;
-    cursor: pointer;
-}
-
-.setting-option:hover {
+form {
+    display: flex;
+    justify-content: space-between;
     color: white;
-    background-color: rgba(0, 0, 0, .12);
 }
 
-label {
-    margin-right: 20px;
+input[type=text] {
+    outline: none;
+    border: none;
+    border-bottom: 2px solid white;
+    background: transparent;
+    caret-color: white;
+    color: white;
+    font-size: 2vmin;
 }
 
-input {
-    font-size: 16pt;
+#submit-btn {
+    margin-left: 5px;
+    cursor: pointer;
+    color: white;
+    background: transparent;
+    border: none;
+    font-size: 2vmin;
+}
+
+#submit-btn:active {
+    border: 1px solid white;
+    border-radius: 2px;
+}
+
+.remove-user {
+    display: inline-block;
+    color: white;
+    margin-left: 8px;
+    opacity: 0;
+    transform: scale(0.1);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.existing-username:hover .remove-user {
+    opacity: 100%;
+    transform: rotate(90deg);
+}
+
+.remove-user:hover {
+    /* keep the same rotation so it doesnt ratate back */
+    transform: rotate(90deg) scale(1.2) !important;
+}
+
+.scrolled-settings {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    gap: 5vmin;
+    position: absolute;
+    margin-top: 10vmin;
 }
