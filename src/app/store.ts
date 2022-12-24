@@ -1,13 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit';
 import animationSlice from './animationSlice';
 import boardStateSlice from './boardStateSlice';
-import settingsSlice from './settingsSlice';
+import settingsSlice, { onlineSettingsMiddleware } from './settingsSlice';
 
 const store = configureStore({
     reducer: {
         boardState: boardStateSlice,
         animation: animationSlice,
         settings: settingsSlice
+    },
+    middleware(getDefaultMiddleware) {
+        return getDefaultMiddleware().concat(onlineSettingsMiddleware);
     },
     devTools: true
 });

@@ -1,0 +1,55 @@
+.image-container {
+    position: relative;
+    cursor: pointer;
+}
+
+.content {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    z-index: 100;
+}
+
+.image-title {
+    color: white;
+    font-size: 4vmin;
+}
+
+.scrolled-settings .image {
+    width: 40vmin;
+    height: 60vmin;
+    object-fit: cover;
+    transition:
+        object-position 0.5s ease-out,
+        filter 0.25s;
+}
+
+.scrolled-settings .image-container:hover .image {
+    filter: brightness(50%);
+}
+
+@media only screen and (max-width: 1200px) {
+    .scrolled-settings .image {
+        width: 30vmin;
+        height: 45vmin;
+    }
+
+    input[type=text] {
+        max-width: 60%;
+    }
+}
+
+@media only screen and (max-width: 876px) {
+    .image-title {
+        font-size: 3vmin;
+    }
+
+    .scrolled-settings .image {
+        width: 24vmin;
+        height: 36vmin;
+    }
+
+    input[type=text] {
+        max-width: 50%;
+    }
+}
