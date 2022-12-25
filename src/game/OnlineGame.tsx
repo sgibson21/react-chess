@@ -37,6 +37,8 @@ export function OnlineGame({onBack}: OnlineGameProps) {
         return <div className="msg info"><h3>{info}</h3></div>
     }
 
-    return <Board dispatchMoves={makeMoves} options={options} />
+    return <div className='game'>
+        <Board dispatchMoves={makeMoves} options={options} />
+    </div>
 
 }

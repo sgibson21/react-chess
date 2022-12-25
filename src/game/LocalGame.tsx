@@ -12,7 +12,7 @@ export const LocalGame: FC = () => {
         allowFlip: true
     };
 
-    return <div className={`local-game allow-flip player-${playersTurn}`}>
+    return <div className={`game local-game allow-flip player-${playersTurn}`}>
         <LocalBoard options={options} />
     </div>
 

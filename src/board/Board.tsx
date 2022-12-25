@@ -109,7 +109,6 @@ export const Board = ({dispatchMoves, options}: BoardProps) => {
     };
 
     const onDrop = (file: file, rank: rank) => {
-        console.log('on drop')
         handleMoves(file, rank, false);
     };
 

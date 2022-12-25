@@ -21,11 +21,11 @@ type MovablePieceData = {
     onPromotion: OnPromotionCallback;
 };
 
-const useAnimate = (square: SquareState) => {
+const useAnimate = (square: SquareState | undefined) => {
     const oldSquare: MutableRefObject<SquareState | null> = useRef(null);
     const oldAnimate: MutableRefObject<boolean> = useRef(false);
     return useSelector((state: any) => {
-        if (square !== oldSquare.current) {
+        if (square && square !== oldSquare.current) {
             oldSquare.current = square;
             oldAnimate.current = state.animation.animate;
             return state.animation.animate;
@@ -43,9 +43,13 @@ export const MovablePiece = ( { pieceId, side, onClick, onDragStart, onDrop, onP
 
     const [{ isOver }, drop] = useDrop(() => ({
         accept: 'piece',
-        drop: () => onDrop(coord.file, coord.rank),
+        drop: () => {
+            if (square) {
+                onDrop(square.file, square.rank)
+            }
+        },
         collect: monitor => ({ isOver: !!monitor.isOver() })
-    }), [onDrop]);
+    }), [onDrop, square]);
 
     if (!square || !square.piece) {
         return <></>;
@@ -56,8 +60,8 @@ export const MovablePiece = ( { pieceId, side, onClick, onDragStart, onDrop, onP
 
     const allowPromotionWindow = !side || side === playersTurn;
 
-    const whitePromotion = allowPromotionWindow && piece.type === PAWN && coord.rank === 8;
-    const blackPromotion = allowPromotionWindow && piece.type === PAWN && coord.rank === 1;
+    const whitePromotion = allowPromotionWindow && piece?.type === PAWN && coord.rank === 8;
+    const blackPromotion = allowPromotionWindow && piece?.type === PAWN && coord.rank === 1;
 
     const promotion = whitePromotion || blackPromotion;
 

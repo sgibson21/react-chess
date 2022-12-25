@@ -8,5 +8,7 @@ export const Analysis: FC = () => {
         allowFlip: false
     };
 
-    return <LocalBoard options={options} />
+    return <div className="game">
+        <LocalBoard options={options} />
+    </div>
 }

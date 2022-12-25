@@ -60,7 +60,7 @@ export const useSquare: ({ file, rank }: coord) => SquareState = ({ file, rank }
     });
 };
 
-export const useSquareFromPieceId = (pieceId: string | undefined) => {
+export const useSquareFromPieceId: (pieceId: string | undefined) => SquareState | undefined = (pieceId: string | undefined) => {
     return useSelector((state: any) => {
 
         if (!pieceId) {
