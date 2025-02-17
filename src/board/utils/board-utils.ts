@@ -481,13 +481,13 @@ export const getBoardRenderOrder: (playersTurn: pieceColor, allowFlip?: boolean,
                 const rookSq = getSquare('h', fromSq.rank, state);
                 if (rookSq.piece) {
 
-                    const symbolToRevoke: castlingSymbol = fromSq.piece.color === 'white' ? 'K' : 'k';
+                    const symbolsToRevoke: castlingSymbol[] = fromSq.piece.color === 'white' ? ['K','Q'] : ['k','q'];
                     moves.push({
                         from: {file: 'h', rank: fromSq.rank},
                         to: {file: 'f', rank: fromSq.rank},
                         castling: {
                             from: castlingAvailability,
-                            to: revokeCastlingRights(castlingAvailability, [symbolToRevoke])
+                            to: revokeCastlingRights(castlingAvailability, symbolsToRevoke)
                         }
                     });
                 }
@@ -496,13 +496,13 @@ export const getBoardRenderOrder: (playersTurn: pieceColor, allowFlip?: boolean,
                 const rookSq = getSquare('a', fromSq.rank, state);
                 if (rookSq.piece) {
 
-                    const symbolToRevoke: castlingSymbol = fromSq.piece.color === 'white' ? 'Q' : 'q';
+                    const symbolsToRevoke: castlingSymbol[] = fromSq.piece.color === 'white' ? ['K','Q'] : ['k','q'];
                     moves.push({
                         from: {file: 'a', rank: fromSq.rank},
                         to: {file: 'd', rank: fromSq.rank},
                         castling: {
                             from: castlingAvailability,
-                            to: revokeCastlingRights(castlingAvailability, [symbolToRevoke])
+                            to: revokeCastlingRights(castlingAvailability, symbolsToRevoke)
                         }
                     });
                 }
@@ -650,7 +650,7 @@ const coordToString = (coord: coord | undefined) => {
     }
 }
 
-const createFen = (state: BoardState) => {
+export const createFen = (state: BoardState) => {
     const enPassant = coordToString(state.enPassantCoord) || '-';
     return `${createPieceFen(state)} ${state.playersTurn == 'white' ? 'w' : 'b'} ${state.castling} ${enPassant}`;
 }
@@ -681,6 +681,10 @@ const createPieceFen = (state: BoardState) => {
                     }
                 }
             });
+
+            if (emptyCount > 0) {
+                FEN += `${emptyCount}`;
+            }
 
             if (rank !== 1) {
                 FEN += '/';
